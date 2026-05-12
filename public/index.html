@@ -591,6 +591,7 @@
                     <div class="control-btn" data-key="\x1b[A">↑ Up</div>
                     <div class="control-btn" data-key="\x1b[B">↓ Down</div>
                     <div class="control-btn" data-key="\x04">␄ EOF</div>
+                    <div class="control-btn" data-key="\x19">Ctrl+Y</div>
                 </div>
                 <div id="input-main-row">
                     <input type="text" id="message-input" placeholder="Type a command..." autocomplete="off">
@@ -999,6 +1000,7 @@
                     else if (key === '\\x1b[A') decodedKey = '\x1b[A';
                     else if (key === '\\x1b[B') decodedKey = '\x1b[B';
                     else if (key === '\\x04') decodedKey = '\x04';
+                    else if (key === '\\x19') decodedKey = '\x19';
                     
                     socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
                 };
