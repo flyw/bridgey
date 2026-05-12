@@ -1,0 +1,42 @@
+{
+  "name": "bridgey",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "bridgey": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "bridgey": "ts-node src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "ansi-to-html": "^0.7.2",
+    "commander": "^14.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "inquirer": "^13.4.3",
+    "node-pty": "^1.1.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^5.0.6",
+    "@types/inquirer": "^9.0.9",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.7.0",
+    "@types/socket.io": "^3.0.1",
+    "@types/socket.io-client": "^1.4.36",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

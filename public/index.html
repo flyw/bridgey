@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Bridgey - CLI to Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #050505;
+            --sidebar-bg: #ffffff;
+            --border-color: #ddd;
+            --message-user-bg: #0084ff;
+            --message-ai-bg: #e4e6eb;
+            --input-bg: #ffffff;
+            --status-bg: #eee;
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #18191a;
+            --card-bg: #242526;
+            --text-color: #e4e6eb;
+            --sidebar-bg: #242526;
+            --border-color: #3e4042;
+            --message-user-bg: #0084ff;
+            --message-ai-bg: #3a3b3c;
+            --input-bg: #3a3b3c;
+            --status-bg: #242526;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        /* Auth Screen Styles */
+        #auth-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+        }
+        .auth-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            color: var(--text-color);
+        }
+        .auth-card h2 { margin-top: 0; }
+        .input-group {
+            position: relative;
+            width: 100%;
+        }
+        .auth-card input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 12px;
+            color: #0084ff;
+            user-select: none;
+            background: var(--input-bg);
+            padding: 0 5px;
+        }
+        .strength-meter {
+            height: 4px;
+            width: 100%;
+            background: var(--border-color);
+            margin-top: -5px;
+            margin-bottom: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+        }
+        #strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        #strength-text {
+            font-size: 11px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .auth-card button {
+            width: 100%;
+            padding: 12px;
+            background: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Chat Screen Styles */
+        #chat-screen {
+            display: none;
+            flex-direction: row;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            color: var(--text-color);
+            transition: transform 0.3s ease, margin-left 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        #sidebar.collapsed {
+            margin-left: -280px;
+            transform: translateX(0);
+        }
+        #sidebar h1 {
+            font-size: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            color: #0084ff;
+        }
+        
+        /* Navbar Styles */
+        #navbar {
+            height: calc(50px + var(--safe-area-inset-top));
+            padding-top: var(--safe-area-inset-top);
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            padding-right: 15px;
+            gap: 15px;
+            flex-shrink: 0;
+            z-index: 90;
+        }
+        #menu-toggle {
+            font-size: 20px;
+            cursor: pointer;
+            user-select: none;
+            padding: 5px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #nav-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--text-color);
+            overflow: hidden;
+            cursor: pointer; /* Make clickable on mobile */
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .nav-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: bold;
+        }
+        .nav-value {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #info-more-icon {
+            display: none;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Mobile specific navbar */
+        @media (max-width: 600px) {
+            #nav-host, #nav-command, .nav-item:nth-child(2), .nav-item:nth-child(3) {
+                display: none;
+            }
+            #info-more-icon {
+                display: block;
+            }
+        }
+
+        /* Info Modal (for mobile) */
+        #info-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin-top: 0; }
+        .modal-row {
+            margin-bottom: 15px;
+        }
+        .modal-row .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: bold;
+        }
+        .modal-row .value {
+            font-size: 14px;
+            font-weight: 500;
+            word-break: break-all;
+        }
+        .modal-close {
+            width: 100%;
+            padding: 10px;
+            background: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .sidebar-section {
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: bold;
+        }
+        #agent-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .agent-item {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+        .agent-item:hover {
+            background-color: var(--bg-color);
+        }
+        .agent-item.selected {
+            background-color: var(--message-ai-bg);
+            border-color: var(--message-user-bg);
+        }
+        .agent-item .agent-id {
+            font-size: 10px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: monospace;
+        }
+        .agent-item .agent-cwd {
+            font-weight: bold;
+            font-size: 13px;
+            color: var(--message-user-bg);
+            word-break: break-all;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .agent-item .agent-command {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .agent-item .agent-host {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .agent-item .agent-status {
+            font-size: 10px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-alive { background-color: #52c41a; }
+        .status-disconnected { background-color: #ff4d4f; }
+
+        /* Settings Section */
+        #settings-area {
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+        .sidebar-item:hover {
+            background-color: var(--bg-color);
+        }
+        #logout-btn {
+            background-color: transparent;
+            color: #ff4d4f;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        #logout-btn:hover {
+            background-color: #ffeef0;
+        }
+        #main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            min-height: 0;
+            position: relative;
+            overflow: hidden; /* Prevent the main container from scrolling */
+        }
+        #chat-container {
+            flex: 1;
+            padding: 5px;
+            background-color: #000;
+            min-height: 0;
+            position: relative;
+            overflow: hidden; /* xterm.js handles its own scrolling */
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+        .message { display: none !important; }
+        #input-container {
+            padding: 10px;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column; /* Stack controls and input */
+            gap: 10px;
+        }
+        #controls-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .control-btn {
+            background-color: var(--status-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .control-btn:hover {
+            background-color: var(--border-color);
+        }
+        #input-main-row {
+            display: flex;
+            gap: 10px;
+        }
+        #message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        #send-button {
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        #status {
+            font-size: 12px;
+            text-align: center;
+            padding: 5px;
+            background: var(--status-bg);
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Screen -->
+    <div id="auth-screen">
+        <div class="auth-card" id="login-card">
+            <h2 id="auth-title">Login to Bridgey</h2>
+            <p id="auth-desc">Please enter your credentials.</p>
+            <input type="text" id="username" placeholder="Username">
+            
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Password">
+                <span class="toggle-password" id="toggle-p1">Show</span>
+            </div>
+            
+            <div id="setup-only" style="display: none; width: 100%;">
+                <div class="strength-meter" id="strength-meter"><div id="strength-bar"></div></div>
+                <div id="strength-text"></div>
+                
+                <div class="input-group">
+                    <input type="password" id="confirm-password" placeholder="Confirm Password">
+                    <span class="toggle-password" id="toggle-p2">Show</span>
+                </div>
+            </div>
+
+            <button id="auth-submit">Login</button>
+        </div>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chat-screen">
+        <div id="sidebar">
+            <h1>Bridgey</h1>
+            
+            <div class="sidebar-section">Active Agents</div>
+            <div id="agent-list">
+                <!-- Agents will be listed here -->
+            </div>
+
+            <div id="settings-area">
+                <div class="sidebar-section">Settings</div>
+                <div class="sidebar-menu">
+                    <div class="sidebar-item" id="refresh-btn">
+                        <span class="item-icon">🔄</span>
+                        <span>Refresh Sync</span>
+                    </div>
+                    <div class="sidebar-item" id="theme-toggle">
+                        <span id="theme-icon">🌙</span>
+                        <span id="theme-text">Dark Mode</span>
+                    </div>
+                    <button id="logout-btn">
+                        <span class="item-icon">🚪</span>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-chat">
+            <div id="navbar">
+                <div id="menu-toggle">☰</div>
+                <div id="nav-info">
+                    <div class="nav-item">
+                        <div class="nav-label">CWD</div>
+                        <div class="nav-value" id="nav-cwd">-</div>
+                    </div>
+                    <div class="nav-item">
+                        <div class="nav-label">Host</div>
+                        <div class="nav-value" id="nav-host">-</div>
+                    </div>
+                    <div class="nav-item">
+                        <div class="nav-label">Command</div>
+                        <div class="nav-value" id="nav-command">-</div>
+                    </div>
+                    <div id="info-more-icon">ⓘ</div>
+                </div>
+            </div>
+
+            <!-- Info Modal for Mobile -->
+            <div id="info-modal">
+                <div class="modal-content">
+                    <h3>Session Details</h3>
+                    <div class="modal-row">
+                        <div class="label">Current Working Directory</div>
+                        <div class="value" id="modal-cwd">-</div>
+                    </div>
+                    <div class="modal-row">
+                        <div class="label">Hostname / IP</div>
+                        <div class="value" id="modal-host">-</div>
+                    </div>
+                    <div class="modal-row">
+                        <div class="label">Active Command</div>
+                        <div class="value" id="modal-command">-</div>
+                    </div>
+                    <button class="modal-close" id="modal-close">Close</button>
+                </div>
+            </div>
+            <div id="status">Connecting...</div>
+            <div id="chat-container">
+                <div id="terminal-container"></div>
+            </div>
+            <form id="input-container">
+                <div id="controls-row">
+                    <div class="control-btn" data-key="\r">⏎ Enter</div>
+                    <div class="control-btn" data-key="\t">⇥ Tab</div>
+                    <div class="control-btn" data-key="\x1b[Z">⇤ S-Tab</div>
+                    <div class="control-btn" data-key="\x1b[A">↑ Up</div>
+                    <div class="control-btn" data-key="\x1b[B">↓ Down</div>
+                    <div class="control-btn" data-key="\x04">␄ EOF</div>
+                </div>
+                <div id="input-main-row">
+                    <input type="text" id="message-input" placeholder="Type a command..." autocomplete="off">
+                    <button type="submit" id="send-button">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const authScreen = document.getElementById('auth-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const authTitle = document.getElementById('auth-title');
+        const authDesc = document.getElementById('auth-desc');
+        const setupOnly = document.getElementById('setup-only');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirm-password');
+        const authSubmit = document.getElementById('auth-submit');
+        const logoutBtn = document.getElementById('logout-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        const navCwd = document.getElementById('nav-cwd');
+        const navHost = document.getElementById('nav-host');
+        const navCommand = document.getElementById('nav-command');
+        const navInfo = document.getElementById('nav-info');
+        const infoModal = document.getElementById('info-modal');
+        const modalClose = document.getElementById('modal-close');
+        
+        const modalCwd = document.getElementById('modal-cwd');
+        const modalHost = document.getElementById('modal-host');
+        const modalCommand = document.getElementById('modal-command');
+        
+        const strengthMeter = document.getElementById('strength-meter');
+        const strengthBar = document.getElementById('strength-bar');
+        const strengthText = document.getElementById('strength-text');
+
+        const toggleP1 = document.getElementById('toggle-p1');
+        const toggleP2 = document.getElementById('toggle-p2');
+
+        const statusEl = document.getElementById('status');
+        const chatContainer = document.getElementById('chat-container');
+        const inputForm = document.getElementById('input-container');
+        const messageInput = document.getElementById('message-input');
+        const agentListEl = document.getElementById('agent-list');
+
+        let isSetup = false;
+        let selectedAgentId = null;
+        let agentsData = [];
+        let agentTerminals = {}; // agentId -> Terminal instance
+
+        const terminalOptions = {
+            theme: {
+                background: '#000000',
+                foreground: '#ffffff',
+                cursor: '#0084ff'
+            },
+            fontSize: 14,
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            cursorBlink: true,
+            allowProposedApi: true
+        };
+
+        function getOrCreateTerminal(agentId) {
+            if (agentTerminals[agentId]) return agentTerminals[agentId];
+
+            const term = new Terminal(terminalOptions);
+            const fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            
+            agentTerminals[agentId] = { term, fitAddon };
+            return agentTerminals[agentId];
+        }
+
+        // Visibility Toggles
+        [toggleP1, toggleP2].forEach((btn, idx) => {
+            btn.onclick = () => {
+                const input = idx === 0 ? passwordInput : confirmInput;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.textContent = 'Hide';
+                } else {
+                    input.type = 'password';
+                    btn.textContent = 'Show';
+                }
+            };
+        });
+
+        // Password Strength Checker
+        passwordInput.oninput = () => {
+            if (!isSetup) return;
+            const val = passwordInput.value;
+            let strength = 0;
+            if (val.length >= 8) strength += 25;
+            if (/[A-Z]/.test(val)) strength += 25;
+            if (/[0-9]/.test(val)) strength += 25;
+            if (/[^A-Za-z0-9]/.test(val)) strength += 25;
+
+            strengthBar.style.width = strength + '%';
+            
+            if (strength <= 25) {
+                strengthBar.style.backgroundColor = '#ff4d4f';
+                strengthText.textContent = 'Weak';
+                strengthText.style.color = '#ff4d4f';
+            } else if (strength <= 75) {
+                strengthBar.style.backgroundColor = '#faad14';
+                strengthText.textContent = 'Medium';
+                strengthText.style.color = '#faad14';
+            } else {
+                strengthBar.style.backgroundColor = '#52c41a';
+                strengthText.textContent = 'Strong';
+                strengthText.style.color = '#52c41a';
+            }
+        };
+
+        // Theme Management
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('bridgey_theme', theme);
+            if (theme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark Mode';
+            }
+        }
+
+        themeToggle.onclick = () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        };
+
+        refreshBtn.onclick = () => {
+            location.reload();
+        };
+
+        // Sidebar Toggle Logic (Hamburger Menu)
+        menuToggle.onclick = () => {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('bridgey_sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        };
+
+        // Restore sidebar state
+        if (localStorage.getItem('bridgey_sidebar_collapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+
+        // Info Modal Toggle
+        navInfo.onclick = () => {
+            if (window.innerWidth <= 600) {
+                infoModal.style.display = 'flex';
+            }
+        };
+        modalClose.onclick = () => {
+            infoModal.style.display = 'none';
+        };
+        window.onclick = (event) => {
+            if (event.target == infoModal) {
+                infoModal.style.display = 'none';
+            }
+        };
+
+        // Initialize theme on load
+        const savedTheme = localStorage.getItem('bridgey_theme') || 'light';
+        setTheme(savedTheme);
+
+        // Check initialization status
+        async function checkStatus() {
+            // Check for existing session
+            const storedToken = localStorage.getItem('bridgey_token');
+            if (storedToken) {
+                startChat(storedToken);
+                return;
+            }
+
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            if (data.needsSetup) {
+                isSetup = true;
+                authTitle.textContent = 'Initial Setup';
+                authDesc.textContent = 'Create your administrator account.';
+                authSubmit.textContent = 'Create Account';
+                setupOnly.style.display = 'block';
+                strengthMeter.style.display = 'block';
+                strengthText.style.display = 'block';
+            }
+        }
+
+        authSubmit.onclick = async () => {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+
+            if (isSetup && password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            const endpoint = isSetup ? '/api/setup' : '/api/login';
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await res.json();
+            if (data.token) {
+                localStorage.setItem('bridgey_token', data.token);
+                startChat(data.token);
+            } else {
+                alert(data.error || 'Authentication failed');
+            }
+        };
+
+        logoutBtn.onclick = () => {
+            localStorage.removeItem('bridgey_token');
+            location.reload();
+        };
+
+        function startChat(token) {
+            authScreen.style.display = 'none';
+            chatScreen.style.display = 'flex';
+
+            const socket = io({ auth: { token: token } });
+
+            socket.on('connect', () => {
+                statusEl.textContent = 'Connected';
+                statusEl.style.color = 'green';
+            });
+
+            socket.on('disconnect', () => {
+                statusEl.textContent = 'Disconnected';
+                statusEl.style.color = 'red';
+            });
+
+            socket.on('connect_error', (err) => {
+                console.error('Socket connection error:', err);
+                if (err.message === 'Authentication error') {
+                    console.log('Token expired or invalid. Clearing and redirecting to login...');
+                    localStorage.removeItem('bridgey_token');
+                    location.reload();
+                } else {
+                    statusEl.textContent = 'Connection Error';
+                    statusEl.style.color = 'red';
+                }
+            });
+
+            socket.on('init_state', (data) => {
+                console.log('Received init_state:', data);
+                agentsData = data.agents;
+                
+                // Initialize terminals and write history
+                Object.keys(data.history).forEach(id => {
+                    const { term } = getOrCreateTerminal(id);
+                    term.reset();
+                    term.write(data.history[id]);
+                });
+
+                renderAgentList();
+                
+                if (agentsData.length > 0) {
+                    const firstAlive = agentsData.find(a => a.status === 'alive');
+                    const targetId = firstAlive ? firstAlive.id : agentsData[0].id;
+                    selectAgent(targetId);
+                }
+            });
+
+            socket.on('agents_update', (agents) => {
+                agentsData = agents;
+                renderAgentList();
+                
+                if (selectedAgentId) {
+                    const currentAgent = agents.find(a => a.id === selectedAgentId);
+                    if (currentAgent) {
+                        updateInputState(currentAgent.status);
+                    }
+                }
+            });
+
+            function syncResize(agentId) {
+                const termInfo = agentTerminals[agentId];
+                if (termInfo && termInfo.term) {
+                    const { cols, rows } = termInfo.term;
+                    console.log(`Syncing resize for ${agentId}: ${cols}x${rows}`);
+                    socket.emit('resize_pty', { agentId, cols, rows });
+                }
+            }
+
+            socket.on('output_stream', (payload) => {
+                const { agentId, data } = payload;
+                const { term } = getOrCreateTerminal(agentId);
+                term.write(data);
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                    agentTerminals[selectedAgentId].fitAddon.fit();
+                    syncResize(selectedAgentId);
+                }
+            });
+
+            function renderAgentList() {
+                agentListEl.innerHTML = '';
+                agentsData.forEach(agent => {
+                    const item = document.createElement('div');
+                    item.className = `agent-item ${agent.id === selectedAgentId ? 'selected' : ''}`;
+                    item.onclick = () => selectAgent(agent.id);
+
+                    item.innerHTML = `
+                        <div class="agent-cwd" title="${agent.cwd}">${agent.cwd || '/'}</div>
+                        <div class="agent-command">${agent.command || 'Unknown Command'}</div>
+                        <div class="agent-host">${agent.hostname || agent.ip || '0.0.0.0'}</div>
+                        <div class="agent-id">${agent.id}</div>
+                        <div class="agent-status">
+                            <span class="status-dot status-${agent.status}"></span>
+                            <span>${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
+                        </div>
+                    `;
+                    agentListEl.appendChild(item);
+                });
+            }
+
+            function selectAgent(id) {
+                selectedAgentId = id;
+                renderAgentList();
+                
+                const termContainer = document.getElementById('terminal-container');
+                termContainer.innerHTML = ''; // Clear container
+                
+                const { term, fitAddon } = getOrCreateTerminal(id);
+                term.open(termContainer);
+                fitAddon.fit();
+                term.focus();
+                
+                // Sync the actual PTY size on the server
+                syncResize(id);
+                
+                const agent = agentsData.find(a => a.id === id);
+                if (agent) {
+                    updateInputState(agent.status);
+                    // Update Navbar Metadata
+                    navCwd.textContent = agent.cwd || '/';
+                    navCwd.title = agent.cwd || '/';
+                    navHost.textContent = agent.hostname || agent.ip || '-';
+                    navCommand.textContent = agent.command || '-';
+                    
+                    // Update Modal Metadata
+                    modalCwd.textContent = agent.cwd || '/';
+                    modalHost.textContent = agent.hostname || agent.ip || '-';
+                    modalCommand.textContent = agent.command || '-';
+                }
+            }
+
+            function updateInputState(status) {
+                if (status === 'alive') {
+                    messageInput.disabled = false;
+                    messageInput.placeholder = 'Type a command...';
+                    document.getElementById('send-button').disabled = false;
+                } else {
+                    messageInput.disabled = true;
+                    messageInput.placeholder = 'Agent disconnected - Interaction disabled';
+                    document.getElementById('send-button').disabled = true;
+                }
+            }
+
+            function syncResize(agentId) {
+                const termInfo = agentTerminals[agentId];
+                if (termInfo && termInfo.term) {
+                    const { cols, rows } = termInfo.term;
+                    console.log(`Syncing resize for ${agentId}: ${cols}x${rows}`);
+                    socket.emit('resize_pty', { agentId, cols, rows });
+                }
+            }
+
+            socket.on('output_stream', (payload) => {
+                const { agentId, data } = payload;
+                const { term } = getOrCreateTerminal(agentId);
+                term.write(data);
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                    agentTerminals[selectedAgentId].fitAddon.fit();
+                    syncResize(selectedAgentId);
+                }
+            });
+
+            // Handle Soft Keyboard Buttons
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.onclick = () => {
+                    if (!selectedAgentId) return;
+                    const key = btn.getAttribute('data-key');
+                    let decodedKey = '';
+                    if (key === '\\r') decodedKey = '\r';
+                    else if (key === '\\t') decodedKey = '\t';
+                    else if (key === '\\x1b[Z') decodedKey = '\x1b[Z';
+                    else if (key === '\\x1b[A') decodedKey = '\x1b[A';
+                    else if (key === '\\x1b[B') decodedKey = '\x1b[B';
+                    else if (key === '\\x04') decodedKey = '\x04';
+                    
+                    socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
+                };
+            });
+
+            inputForm.onsubmit = (e) => {
+                e.preventDefault();
+                const cmd = messageInput.value;
+                if (!cmd || !selectedAgentId) return;
+                
+                socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd + '\r' });
+                messageInput.value = '';
+            };
+        }
+
+        checkStatus();
+    </script>
+</body>
+</html>
