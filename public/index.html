@@ -1044,9 +1044,16 @@
             });
 
             refreshBtn.onclick = () => {
-                console.log('Forcing refresh...');
-                socket.emit('get_init_state');
-                showToast('Syncing latest state...');
+                console.log('Cleaning cache and reloading...');
+                // Keep auth and theme, clear everything else if any
+                const token = localStorage.getItem('bridgey_token');
+                const theme = localStorage.getItem('theme');
+                localStorage.clear();
+                if (token) localStorage.setItem('bridgey_token', token);
+                if (theme) localStorage.setItem('theme', theme);
+                
+                // Force reload
+                location.reload();
             };
 
             socket.on('init_state', (data) => {
