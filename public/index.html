@@ -593,21 +593,26 @@
             </div>
             <form id="input-container">
                 <div id="controls-row">
-                    <div class="control-btn" data-key="\x03" style="color: #ff4d4f; border-color: #ff4d4f22;">Ctrl+C</div>
+                    <!-- Basic Controls -->
+                    <div class="control-btn" data-key="\x03" style="color: #ff4d4f; border-color: #ff4d4f44;">Ctrl+C</div>
                     <div class="control-btn" data-key="\r">⏎ Enter</div>
+                    <div class="control-btn" data-key="\x7f">⌫ BS</div>
                     <div class="control-btn" data-key="\t">⇥ Tab</div>
                     <div class="control-btn" data-key="\x1b[A">↑ Up</div>
                     <div class="control-btn" data-key="\x1b[B">↓ Down</div>
-                    <div class="control-btn" data-key="\x02c" style="background-color: #0084ff11;">T-New</div>
-                    <div class="control-btn" data-key="\x020">W0</div>
-                    <div class="control-btn" data-key="\x021">W1</div>
-                    <div class="control-btn" data-key="\x022">W2</div>
-                    <div class="control-btn" data-key="\x023">W3</div>
-                    <div class="control-btn" data-key="\x024">W4</div>
-                    <div class="control-btn" data-key="\x025">W5</div>
                     <div class="control-btn" data-key="\x1b[Z">⇤ S-Tab</div>
-                    <div class="control-btn" data-key="\x04">␄ EOF</div>
                     <div class="control-btn" data-key="\x19">Ctrl+Y</div>
+
+                    <div style="width: 2px; background: var(--border-color); margin: 5px 2px; flex-shrink: 0;"></div>
+
+                    <!-- Tmux Controls -->
+                    <div class="control-btn" data-key="\x02c" style="background-color: #0084ff22; border-color: #0084ff44; color: #0084ff;">T-New</div>
+                    <div class="control-btn" data-key="\x020" style="background-color: #0084ff11;">W0</div>
+                    <div class="control-btn" data-key="\x021" style="background-color: #0084ff11;">W1</div>
+                    <div class="control-btn" data-key="\x022" style="background-color: #0084ff11;">W2</div>
+                    <div class="control-btn" data-key="\x023" style="background-color: #0084ff11;">W3</div>
+                    <div class="control-btn" data-key="\x024" style="background-color: #0084ff11;">W4</div>
+                    <div class="control-btn" data-key="\x025" style="background-color: #0084ff11;">W5</div>
                 </div>
                 <div id="input-main-row">
                     <textarea id="message-input" placeholder="Type a command..." autocomplete="off" rows="1"></textarea>
