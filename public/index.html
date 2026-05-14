@@ -654,6 +654,10 @@
                         <div class="nav-label">Host</div>
                         <div class="nav-value" id="nav-host">-</div>
                     </div>
+                    <div class="nav-item">
+                        <div class="nav-label">IP</div>
+                        <div class="nav-value" id="nav-ip">-</div>
+                    </div>
                     <div id="info-more-icon">ⓘ</div>
                 </div>
             </div>
@@ -667,8 +671,12 @@
                         <div class="value" id="modal-cwd">-</div>
                     </div>
                     <div class="modal-row">
-                        <div class="label">Hostname / IP</div>
+                        <div class="label">Hostname</div>
                         <div class="value" id="modal-host">-</div>
+                    </div>
+                    <div class="modal-row">
+                        <div class="label">IP Address</div>
+                        <div class="value" id="modal-ip">-</div>
                     </div>
                     <button class="modal-close" id="modal-close">Close</button>
                 </div>
@@ -732,12 +740,26 @@
         const menuToggle = document.getElementById('menu-toggle');
         const navCwd = document.getElementById('nav-cwd');
         const navHost = document.getElementById('nav-host');
+        const navIp = document.getElementById('nav-ip');
         const navInfo = document.getElementById('nav-info');
         const infoModal = document.getElementById('info-modal');
         const modalClose = document.getElementById('modal-close');
         
         const modalCwd = document.getElementById('modal-cwd');
         const modalHost = document.getElementById('modal-host');
+        const modalIp = document.getElementById('modal-ip');
+
+        // Sidebar Toggle Logic
+        menuToggle.onclick = (e) => {
+            e.stopPropagation();
+            sidebar.classList.toggle('open');
+        };
+
+        document.addEventListener('click', (e) => {
+            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuToggle) {
+                sidebar.classList.remove('open');
+            }
+        });
         
         const strengthMeter = document.getElementById('strength-meter');
         const strengthBar = document.getElementById('strength-bar');
@@ -984,11 +1006,10 @@
                     item.className = `agent-item ${agent.id === selectedAgentId ? 'selected' : ''}`;
                     item.onclick = () => selectAgent(agent.id);
 
-                    const hostDisplay = agent.hostname && agent.ip ? `${agent.hostname} (${agent.ip})` : (agent.hostname || agent.ip || '0.0.0.0');
-
                     item.innerHTML = `
                         <div class="agent-cwd" title="${agent.cwd}">${agent.cwd || '/'}</div>
-                        <div class="agent-host">${hostDisplay}</div>
+                        <div class="agent-host" style="font-weight: 600;">Host: ${agent.hostname || '-'}</div>
+                        <div class="agent-host" style="font-size: 10px; opacity: 0.8;">IP: ${agent.ip || '-'}</div>
                         <div class="agent-id">${agent.id}</div>
                         <div class="agent-status">
                             <span class="status-dot status-${agent.status}"></span>
@@ -1018,16 +1039,16 @@
                 if (agent) {
                     updateInputState(agent.status);
                     
-                    const hostDisplay = agent.hostname && agent.ip ? `${agent.hostname} (${agent.ip})` : (agent.hostname || agent.ip || '-');
-
                     // Update Navbar Metadata
                     navCwd.textContent = agent.cwd || '/';
                     navCwd.title = agent.cwd || '/';
-                    navHost.textContent = hostDisplay;
+                    navHost.textContent = agent.hostname || '-';
+                    navIp.textContent = agent.ip || '-';
                     
                     // Update Modal Metadata
                     modalCwd.textContent = agent.cwd || '/';
-                    modalHost.textContent = hostDisplay;
+                    modalHost.textContent = agent.hostname || '-';
+                    modalIp.textContent = agent.ip || '-';
                 }
             }
 
