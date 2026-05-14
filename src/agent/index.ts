@@ -116,12 +116,23 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     }
   });
 
-  socket.on('file_upload', (payload: { filename: string, data: Buffer }) => {
+  socket.on('file_upload', (payload: { filename: string, data: Buffer, target?: string }) => {
     try {
       const ext = path.extname(payload.filename) || '.bin';
-      const tmpPath = path.join('/tmp', `bridgey_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
+      let tmpPath: string;
+
+      if (payload.target === 'cwd') {
+        const clipboardDir = path.join(process.cwd(), 'clipboard');
+        if (!fs.existsSync(clipboardDir)) {
+          fs.mkdirSync(clipboardDir, { recursive: true });
+        }
+        tmpPath = path.join(clipboardDir, `upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
+      } else {
+        tmpPath = path.join('/tmp', `bridgey_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
+      }
+
       fs.writeFileSync(tmpPath, payload.data);
-      console.log(`File saved to ${tmpPath} (${payload.data.length} bytes)`);
+      console.log(`File saved to ${tmpPath} (${payload.data.length} bytes, target: ${payload.target || 'tmp'})`);
 
       // Clipboard sync logic
       const isImage = /\.(png|jpg|jpeg|gif|bmp)$/i.test(tmpPath);

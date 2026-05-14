@@ -180,7 +180,7 @@ export const runRelay = (config: Config) => {
         }
       });
 
-      socket.on('file_upload', (payload: { agentId: string, filename: string, data: ArrayBuffer | Buffer }) => {
+      socket.on('file_upload', (payload: { agentId: string, filename: string, data: ArrayBuffer | Buffer, target?: string }) => {
         const targetId = String(payload.agentId);
         const agent = agents.get(targetId);
         if (agent && agent.info.status === 'alive') {

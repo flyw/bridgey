@@ -626,9 +626,12 @@
                 Click here & Paste (Ctrl+V)
             </div>
             <input type="file" id="file-input" style="display: none;" accept="image/*">
-            <div style="display: flex; gap: 10px;">
-                <button class="modal-close" style="background: #666; flex: 1;" id="upload-cancel">Cancel</button>
-                <button class="modal-close" style="flex: 2;" id="upload-submit">Upload</button>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="modal-close" style="background: #28a745; flex: 1;" id="upload-submit-cwd">Upload to Project</button>
+                    <button class="modal-close" style="flex: 1;" id="upload-submit">Upload to /tmp</button>
+                </div>
+                <button class="modal-close" style="background: #666;" id="upload-cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -875,6 +878,7 @@
         const uploadModal = document.getElementById('upload-modal');
         const uploadCancel = document.getElementById('upload-cancel');
         const uploadSubmit = document.getElementById('upload-submit');
+        const uploadSubmitCwd = document.getElementById('upload-submit-cwd');
         const pasteArea = document.getElementById('paste-area');
         const fileInput = document.getElementById('file-input');
         const toastContainer = document.getElementById('toast-container');
@@ -1232,6 +1236,29 @@
                 pasteArea.innerHTML = 'Click here & Paste (Ctrl+V)';
             };
 
+            const performUpload = (target) => {
+                if (!currentFile || !selectedAgentId) {
+                    alert('Please select or paste an image first');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    socket.emit('file_upload', {
+                        agentId: selectedAgentId,
+                        filename: currentFile.name || 'pasted_image.png',
+                        data: reader.result,
+                        target: target
+                    });
+                    uploadModal.style.display = 'none';
+                    currentFile = null;
+                    pasteArea.innerHTML = 'Click here & Paste (Ctrl+V)';
+                };
+                reader.readAsArrayBuffer(currentFile);
+            };
+
+            uploadSubmit.onclick = () => performUpload('tmp');
+            uploadSubmitCwd.onclick = () => performUpload('cwd');
+
             pasteArea.onpaste = (e) => {
                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
                 for (let item of items) {
@@ -1258,25 +1285,6 @@
                     };
                     reader.readAsDataURL(blob);
                 }
-            };
-
-            uploadSubmit.onclick = () => {
-                if (!currentFile || !selectedAgentId) {
-                    alert('Please select or paste an image first');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                    socket.emit('file_upload', {
-                        agentId: selectedAgentId,
-                        filename: currentFile.name || 'pasted_image.png',
-                        data: reader.result
-                    });
-                    uploadModal.style.display = 'none';
-                    currentFile = null;
-                    pasteArea.innerHTML = 'Click here & Paste (Ctrl+V)';
-                };
-                reader.readAsArrayBuffer(currentFile);
             };
         }
 
