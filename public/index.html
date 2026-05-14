@@ -902,13 +902,19 @@
             allowProposedApi: true
         };
 
-        function getOrCreateTerminal(agentId) {
+        function getOrCreateTerminal(agentId, socket) {
             if (agentTerminals[agentId]) return agentTerminals[agentId];
 
             const term = new Terminal(terminalOptions);
             const fitAddon = new FitAddon.FitAddon();
             term.loadAddon(fitAddon);
             
+            if (socket) {
+                term.onData(data => {
+                    socket.emit('input_cmd', { agentId, cmd: data });
+                });
+            }
+
             agentTerminals[agentId] = { term, fitAddon };
             return agentTerminals[agentId];
         }
@@ -1043,7 +1049,7 @@
                 
                 // Initialize terminals and write history
                 Object.keys(data.history).forEach(id => {
-                    const { term } = getOrCreateTerminal(id);
+                    const { term } = getOrCreateTerminal(id, socket);
                     term.reset();
                     term.write(data.history[id]);
                 });
@@ -1080,7 +1086,7 @@
 
             socket.on('output_stream', (payload) => {
                 const { agentId, data } = payload;
-                const { term } = getOrCreateTerminal(agentId);
+                const { term } = getOrCreateTerminal(agentId, socket);
                 term.write(data);
             });
 
@@ -1128,7 +1134,7 @@
                 const termContainer = document.getElementById('terminal-container');
                 termContainer.innerHTML = ''; // Clear container
                 
-                const { term, fitAddon } = getOrCreateTerminal(id);
+                const { term, fitAddon } = getOrCreateTerminal(id, socket);
                 term.open(termContainer);
                 fitAddon.fit();
                 term.focus();
