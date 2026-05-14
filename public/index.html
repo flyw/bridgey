@@ -46,8 +46,10 @@
             overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
             -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none; /* Disable pull-to-refresh and glow */
+            position: fixed; /* Lock viewport */
+            width: 100%;
         }
-
         /* Custom Scrollbar Styles */
         ::-webkit-scrollbar {
             width: 8px;
@@ -139,6 +141,12 @@
             display: none;
             flex-direction: row;
             height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
         }
         #sidebar {
             width: 260px;
@@ -453,10 +461,13 @@
             min-height: 0;
             position: relative;
             overflow: hidden; /* xterm.js handles its own scrolling */
+            touch-action: none;
+            overscroll-behavior: none;
         }
         #terminal-container {
             width: 100%;
             height: 100%;
+            touch-action: none;
         }
         .message { display: none !important; }
         #input-container {
@@ -1156,21 +1167,24 @@
                 let touchStartY = 0;
                 termContainer.addEventListener('touchstart', (e) => {
                     touchStartY = e.touches[0].clientY;
+                    // e.preventDefault(); // Don't prevent default on start to allow focus
                 }, { passive: true });
 
                 termContainer.addEventListener('touchmove', (e) => {
                     const touchY = e.touches[0].clientY;
                     const deltaY = touchStartY - touchY;
                     if (Math.abs(deltaY) > 5) {
+                        e.preventDefault(); // Prevent page pull-to-refresh
+                        e.stopPropagation();
                         // Simulate wheel event for xterm.js which will be reported to tmux
                         const event = new WheelEvent('wheel', {
-                            deltaY: deltaY,
+                            deltaY: deltaY * 2, // Multiply for faster scrolling on mobile
                             deltaMode: 0
                         });
                         termContainer.querySelector('.xterm-screen').dispatchEvent(event);
                         touchStartY = touchY; // Reset for smooth continuous scrolling
                     }
-                }, { passive: true });
+                }, { passive: false }); // Must be false to allow preventDefault
                 
                 // Sync the actual PTY size on the server
                 syncResize(id);
