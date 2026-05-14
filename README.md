@@ -7,11 +7,12 @@ It allows you to run CLI tools on a local machine (e.g., behind a NAT) and inter
 ## Features
 
 - **Agent-Relay Architecture**: Securely bridge local CLI tools to the public internet.
-- **Persistent Sessions**: Built-in **tmux** integration. Even if you disconnect, your CLI session keeps running.
+- **Persistent Sessions**: Built-in **tmux** integration with robust mouse support (scrolling/clicking) enabled by default. Even if you disconnect, your CLI session keeps running.
 - **Smart Re-entry**: Restarting the agent automatically attaches to the existing session and preserves chat history on the web.
 - **Takeover Logic**: Automatically terminates stale agent processes to prevent duplicate streams.
 - **Remote Image Upload**: Upload images via the Web UI (paste or file select). Files are saved to `/tmp/` on the agent machine and automatically synced to the remote clipboard.
 - **Advanced Web UI**:
+  - **Mobile Optimized**: Enhanced touch-to-scroll simulation for seamless terminal interaction on smartphones.
   - **Multiline Input**: Auto-resizing input box with `Shift+Enter` for newlines.
   - **Quick Shortcuts**: Dedicated buttons for `Ctrl+C`, `Ctrl+V`, `Backspace`, and `Tmux` window management.
   - **Metadata Display**: Real-time display of Current Working Directory (CWD) and Hostname (including IP).
