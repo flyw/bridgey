@@ -559,14 +559,21 @@
             90% { opacity: 1; transform: translateY(0); }
             100% { opacity: 0; transform: translateY(-20px); }
         }
+#status {
+    font-size: 12px;
+    text-align: center;
+    padding: 5px;
+    background: var(--status-bg);
+    color: var(--text-color);
+}
 
-        #status {
-            font-size: 12px;
-            text-align: center;
-            padding: 5px;
-            background: var(--status-bg);
-            color: var(--text-color);
-        }
+/* Dark Mode Specific Tweaks */
+[data-theme="dark"] #logout-btn:hover {
+    background-color: rgba(255, 77, 79, 0.2);
+}
+[data-theme="dark"] .strength-meter {
+    background: #3a3b3c;
+}
     </style>
 </head>
 <body>
@@ -761,6 +768,29 @@
             }
         });
         
+        // Theme Toggle Logic
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        if (currentTheme === 'dark') {
+            themeIcon.textContent = '☀️';
+            themeText.textContent = 'Light Mode';
+        }
+
+        themeToggle.onclick = () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') {
+                theme = 'light';
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark Mode';
+            } else {
+                theme = 'dark';
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        };
+
         const strengthMeter = document.getElementById('strength-meter');
         const strengthBar = document.getElementById('strength-bar');
         const strengthText = document.getElementById('strength-text');
