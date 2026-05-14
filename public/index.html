@@ -1151,6 +1151,26 @@
                 term.open(termContainer);
                 fitAddon.fit();
                 term.focus();
+
+                // Mobile Touch to Scroll Support
+                let touchStartY = 0;
+                termContainer.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                termContainer.addEventListener('touchmove', (e) => {
+                    const touchY = e.touches[0].clientY;
+                    const deltaY = touchStartY - touchY;
+                    if (Math.abs(deltaY) > 5) {
+                        // Simulate wheel event for xterm.js which will be reported to tmux
+                        const event = new WheelEvent('wheel', {
+                            deltaY: deltaY,
+                            deltaMode: 0
+                        });
+                        termContainer.querySelector('.xterm-screen').dispatchEvent(event);
+                        touchStartY = touchY; // Reset for smooth continuous scrolling
+                    }
+                }, { passive: true });
                 
                 // Sync the actual PTY size on the server
                 syncResize(id);
