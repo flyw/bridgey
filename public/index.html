@@ -1049,7 +1049,14 @@
                 const cmd = messageInput.value;
                 if (!cmd || !selectedAgentId) return;
                 
-                socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd + '\r' });
+                // Send the command text first
+                socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd });
+                
+                // Send the Enter key after 200ms to avoid Gemini's rapid input detection
+                setTimeout(() => {
+                    socket.emit('input_cmd', { agentId: selectedAgentId, cmd: '\r' });
+                }, 200);
+
                 messageInput.value = '';
                 // Reset height
                 messageInput.style.height = 'auto';
