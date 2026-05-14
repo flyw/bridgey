@@ -85,10 +85,12 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   if (command === 'tmux' && sessionName) {
     setTimeout(() => {
       try {
+        // Enable mouse support for the specific session and also globally
         spawn('tmux', ['set-option', '-t', sessionName, 'mouse', 'on']);
+        spawn('tmux', ['set-option', '-g', 'mouse', 'on']);
         console.log(`Enabled mouse support for tmux session: ${sessionName}`);
       } catch (e) {}
-    }, 1000);
+    }, 2000);
   }
 
   // Handle local terminal interaction

@@ -910,7 +910,8 @@
             fontSize: 14,
             fontFamily: 'Menlo, Monaco, "Courier New", monospace',
             cursorBlink: true,
-            allowProposedApi: true
+            allowProposedApi: true,
+            scrollSensitivity: 1.2
         };
 
         function getOrCreateTerminal(agentId, socket) {
@@ -928,6 +929,61 @@
 
             agentTerminals[agentId] = { term, fitAddon };
             return agentTerminals[agentId];
+        }
+
+        // Global touch scroll state
+        let touchStartY = 0;
+
+        function initTerminalContainer() {
+            const termContainer = document.getElementById('terminal-container');
+            if (termContainer.hasTouchListeners) return;
+            
+            termContainer.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                // Focus the terminal on touch to ensure it receives wheel events
+                if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                    agentTerminals[selectedAgentId].term.focus();
+                }
+            }, { passive: true });
+
+            termContainer.addEventListener('touchmove', (e) => {
+                if (!selectedAgentId || !agentTerminals[selectedAgentId]) return;
+                const { term } = agentTerminals[selectedAgentId];
+                
+                const touchY = e.touches[0].clientY;
+                const deltaY = touchStartY - touchY;
+                
+                if (Math.abs(deltaY) > 5) {
+                    // Prevent default browser behavior (like pull-to-refresh)
+                    e.preventDefault();
+                    
+                    // Simulate wheel event for xterm.js
+                    // xterm.js 5.x listens for 'wheel' events on its viewport
+                    const event = new WheelEvent('wheel', {
+                        deltaY: deltaY * 3, // Increased multiplier for better feel
+                        deltaMode: 0,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    
+                    // Dispatch to viewport if possible, otherwise the root element
+                    const target = term.element ? (term.element.querySelector('.xterm-viewport') || term.element) : null;
+                    if (target) {
+                        target.dispatchEvent(event);
+                    }
+                    
+                    touchStartY = touchY;
+                }
+            }, { passive: false });
+            
+            // Also handle click to focus
+            termContainer.addEventListener('mousedown', () => {
+                if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                    agentTerminals[selectedAgentId].term.focus();
+                }
+            });
+
+            termContainer.hasTouchListeners = true;
         }
 
         function showToast(message) {
@@ -1163,28 +1219,8 @@
                 fitAddon.fit();
                 term.focus();
 
-                // Mobile Touch to Scroll Support
-                let touchStartY = 0;
-                termContainer.addEventListener('touchstart', (e) => {
-                    touchStartY = e.touches[0].clientY;
-                    // e.preventDefault(); // Don't prevent default on start to allow focus
-                }, { passive: true });
-
-                termContainer.addEventListener('touchmove', (e) => {
-                    const touchY = e.touches[0].clientY;
-                    const deltaY = touchStartY - touchY;
-                    if (Math.abs(deltaY) > 5) {
-                        e.preventDefault(); // Prevent page pull-to-refresh
-                        e.stopPropagation();
-                        // Simulate wheel event for xterm.js which will be reported to tmux
-                        const event = new WheelEvent('wheel', {
-                            deltaY: deltaY * 2, // Multiply for faster scrolling on mobile
-                            deltaMode: 0
-                        });
-                        termContainer.querySelector('.xterm-screen').dispatchEvent(event);
-                        touchStartY = touchY; // Reset for smooth continuous scrolling
-                    }
-                }, { passive: false }); // Must be false to allow preventDefault
+                // Initialize container listeners once
+                initTerminalContainer();
                 
                 // Sync the actual PTY size on the server
                 syncResize(id);
