@@ -132,23 +132,15 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
 
       const syncToClipboard = () => {
         if (isImage) {
-          console.log(`Attempting to sync image ${tmpPath} to clipboard...`);
-          // Try xclip for image
-          const xclipImg = spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath], { env });
-          xclipImg.on('error', (err) => console.error('xclip image error:', err));
-          
-          // Try wl-copy as fallback
-          const wlCopy = spawn('sh', ['-c', `wl-copy < ${tmpPath}`], { env });
-          wlCopy.on('error', (err) => console.error('wl-copy error:', err));
+          console.log(`Syncing image ${tmpPath} to clipboard...`);
+          // Use xclip for image. We don't overwrite with text if it's an image
+          spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath], { env, detached: true, stdio: 'ignore' }).unref();
+          spawn('sh', ['-c', `wl-copy < ${tmpPath}`], { env, detached: true, stdio: 'ignore' }).unref();
+        } else {
+          console.log(`Syncing path ${tmpPath} to clipboard as text...`);
+          spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`], { env, detached: true, stdio: 'ignore' }).unref();
+          spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`], { env, detached: true, stdio: 'ignore' }).unref();
         }
-        
-        // Also always sync the path as text as a fallback
-        console.log(`Syncing path ${tmpPath} to clipboard as text...`);
-        const xclipText = spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`], { env });
-        xclipText.on('error', (err) => console.error('xclip text error:', err));
-        
-        const wlCopyText = spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`], { env });
-        wlCopyText.on('error', (err) => console.error('wl-copy text error:', err));
       };
 
       syncToClipboard();
