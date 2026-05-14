@@ -7,6 +7,8 @@ It allows you to run CLI tools on a local machine (e.g., behind a NAT) and inter
 ## Features
 
 - **Agent-Relay Architecture**: Securely bridge local CLI tools to the public internet.
+- **Persistent Sessions**: Built-in **tmux** integration for session persistence and multi-client synchronization.
+- **Dual Interaction**: Interact with the same session simultaneously from your local terminal and the web interface.
 - **Terminal to Chat**: Converts terminal streams into chat bubbles.
 - **ANSI Support**: Preserves terminal colors in the web interface.
 - **Mobile Friendly**: Designed for mobile browsers.
@@ -14,7 +16,7 @@ It allows you to run CLI tools on a local machine (e.g., behind a NAT) and inter
 
 ## Architecture
 
-- **Agent**: Runs on your local machine. It manages the local CLI process using PTY (Pseudo-Terminal) and connects to the Relay.
+- **Agent**: Runs on your local machine. It manages a **tmux** session and connects to the Relay. It supports simultaneous local and remote interaction.
 - **Relay**: A public-facing server that hosts the Web UI and forwards messages between the Agent and Web clients.
 - **Web UI**: A responsive web interface that displays terminal output as a chat and sends user input back to the CLI.
 
@@ -22,11 +24,23 @@ It allows you to run CLI tools on a local machine (e.g., behind a NAT) and inter
 
 ### 1. Installation
 
+**Prerequisite: tmux**
+Bridgey requires `tmux` installed on the Agent machine for session management.
+```bash
+# Ubuntu/Debian
+sudo apt-get install tmux
+
+# macOS
+brew install tmux
+```
+
+**Bridgey Installation**
 ```bash
 git clone https://github.com/youruser/bridgey.git
 cd bridgey
 npm install
 npm run build
+npm link
 ```
 
 ### 2. Configuration
@@ -53,27 +67,22 @@ bridgey relay start
 
 ### 4. Start Agent
 
-On your local machine, execute the command you want to bridge:
+On your local machine, simply run:
 
 ```bash
-# Bridge bash
-bridgey agent start bash
-
-# Bridge gemini chat
-bridgey agent start gemini chat
+bridgey agent start
 ```
+This will:
+1. Create or attach to a tmux session named `bridgey`.
+2. Allow you to interact locally in the same terminal.
+3. Simultaneously stream the session to the Relay for remote access.
 
-### Tips
-For the best experience, link the command globally:
-```bash
-npm run build
-npm link
-bridgey gen-token
-```
+To detach from the session locally without closing it, use `Ctrl+B, D`. To close the session and stop the agent, type `exit` inside the terminal.
 
 ### 5. Access Web UI
 
 Open `http://your-relay-ip:3000` in your browser and enter the token.
+
 
 ## Development
 

@@ -40,12 +40,11 @@ relay
 const agent = program.command('agent').description('Agent management');
 
 agent
-  .command('start <command> [args...]')
-  .description('Start the agent and execute a command')
-  .option('-p, --pipe', 'Use stdout/stdin pipe mode instead of PTY', false)
-  .action((command, args, options) => {
+  .command('start')
+  .description('Start the agent and attach to/create a tmux session')
+  .action(() => {
     const config = getConfig();
-    runAgent(config, command, args, options.pipe);
+    runAgent(config, 'tmux', ['new-session', '-A', '-s', 'bridgey'], 'bridgey');
   });
 
 agent

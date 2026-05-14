@@ -4,6 +4,8 @@ import { io } from 'socket.io-client';
 import { Config } from '../types';
 import * as crypto from 'crypto';
 import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const getLocalIp = () => {
   const interfaces = os.networkInterfaces();
@@ -17,18 +19,36 @@ const getLocalIp = () => {
   return '127.0.0.1';
 };
 
-export const runAgent = (config: Config, command: string, args: string[], usePipe: boolean = false) => {
-  const agentId = crypto.randomUUID();
+export const runAgent = (config: Config, command: string, args: string[], sessionName?: string) => {
+  // Use a persistent agentId if sessionName is provided, otherwise fallback to UUID
+  const agentId = sessionName 
+    ? crypto.createHash('md5').update(`${os.hostname()}-${sessionName}`).digest('hex')
+    : crypto.randomUUID();
+  
+  const pidFile = path.join(os.tmpdir(), `bridgey-agent-${agentId}.pid`);
+
+  // Takeover logic: if an agent is already running with this ID, kill it
+  if (fs.existsSync(pidFile)) {
+    const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8'), 10);
+    try {
+      process.kill(oldPid, 'SIGTERM');
+      console.log(`Terminated existing agent process (PID: ${oldPid}) to take over session.`);
+    } catch (e) {
+      // Process might not exist, that's fine
+    }
+  }
+  fs.writeFileSync(pidFile, process.pid.toString());
+
   const cwd = process.cwd();
   const ip = getLocalIp();
   const hostname = os.hostname();
 
-  console.log(`Agent ID: ${agentId}`);
+  console.log(`Agent ID: ${agentId} (Session: ${sessionName || 'default'})`);
   console.log(`CWD: ${cwd}`);
   console.log(`IP: ${ip}`);
   console.log(`Hostname: ${hostname}`);
   console.log(`Connecting to relay at ${config.agent.serverUrl}...`);
-  console.log(`Executing command (${usePipe ? 'Pipe' : 'PTY'} mode): ${command} ${args.join(' ')}`);
+  console.log(`Executing command (PTY mode): ${command} ${args.join(' ')}`);
 
   const socket = io(config.agent.serverUrl, {
     auth: { token: config.token },
@@ -44,70 +64,86 @@ export const runAgent = (config: Config, command: string, args: string[], usePip
 
   const env = { ...process.env, TERM: 'xterm-256color' };
 
-  if (usePipe) {
-    const proc = spawn(command, args, {
-      shell: true,
-      env: env,
-      stdio: ['pipe', 'pipe', 'pipe']
+  // Get initial terminal size if available
+  const initialCols = process.stdout.columns || 80;
+  const initialRows = process.stdout.rows || 30;
+
+  const ptyProcess = pty.spawn(command, args, {
+    name: 'xterm-256color',
+    cols: initialCols,
+    rows: initialRows,
+    cwd: process.cwd(),
+    env: env as any
+  });
+
+  // Handle local terminal interaction
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+    process.stdin.on('data', (data) => {
+      ptyProcess.write(data);
     });
 
-    socket.on('connect', () => console.log('Connected to relay server (Pipe mode)'));
-    
-    proc.stdout.on('data', (data) => socket.emit('output_stream', { agentId, data: data.toString() }));
-    proc.stderr.on('data', (data) => socket.emit('output_stream', { agentId, data: data.toString() }));
-    socket.on('input_cmd', (cmd) => {
-      proc.stdin.write(cmd);
-    });
-
-    proc.on('error', (err) => {
-      console.error('Failed to start process:', err);
-      socket.emit('output_stream', { agentId, data: `\n[Error] Failed to start process: ${err.message}\n` });
-    });
-
-    proc.on('exit', (code) => {
-      console.log(`Process exited with code ${code}`);
-      socket.emit('output_stream', { agentId, data: `\n[Process Exited with code ${code}]\n` });
-      setTimeout(() => process.exit(code || 0), 1000);
-    });
-    } else {
-    const ptyProcess = pty.spawn(command, args, {
-      name: 'xterm-256color',
-      cols: 80,
-      rows: 30,
-      cwd: process.cwd(),
-      env: env as any
-    });
-
-    socket.on('connect', () => console.log('Connected to relay server (PTY mode)'));
-
-    ptyProcess.onData((data) => {
-      socket.emit('output_stream', { agentId, data: data.toString() });
-    });
-
-    socket.on('input_cmd', (cmd) => {
-      // We now expect the caller (web frontend) to provide the correct
-      // line endings (like \r) if they want to execute a command.
-      // This allows raw escape sequences (like arrows) to work without triggering Enter.
-      ptyProcess.write(cmd);
-    });
-
-    socket.on('resize_pty', ({ cols, rows }) => {
-      try {
-        console.log(`Resizing PTY to ${cols}x${rows}`);
-        ptyProcess.resize(cols, rows);
-      } catch (e) {
-        console.error('Failed to resize PTY:', e);
-      }
-    });
-
-    ptyProcess.onExit(({ exitCode }) => {
-      console.log(`PTY process exited with code ${exitCode}`);
-      socket.emit('output_stream', { agentId, data: `\n[PTY Process Exited with code ${exitCode}]\n` });
-      setTimeout(() => process.exit(exitCode), 1000);
+    // Handle local terminal resize
+    process.stdout.on('resize', () => {
+      const cols = process.stdout.columns || 80;
+      const rows = process.stdout.rows || 30;
+      ptyProcess.resize(cols, rows);
     });
   }
 
+  socket.on('connect', () => console.log('Connected to relay server (PTY mode)'));
+
+  ptyProcess.onData((data) => {
+    socket.emit('output_stream', { agentId, data: data.toString() });
+    process.stdout.write(data);
+  });
+
+  socket.on('input_cmd', (cmd) => {
+    ptyProcess.write(cmd);
+  });
+
+  socket.on('resize_pty', ({ cols, rows }) => {
+    try {
+      console.log(`Resizing PTY to ${cols}x${rows}`);
+      ptyProcess.resize(cols, rows);
+    } catch (e) {
+      console.error('Failed to resize PTY:', e);
+    }
+  });
+
+  const cleanup = () => {
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+    }
+    if (fs.existsSync(pidFile)) {
+      try {
+        const currentPid = fs.readFileSync(pidFile, 'utf8');
+        if (currentPid === process.pid.toString()) {
+          fs.unlinkSync(pidFile);
+        }
+      } catch (e) {}
+    }
+  };
+
+  ptyProcess.onExit(({ exitCode }) => {
+    cleanup();
+    console.log(`PTY process exited with code ${exitCode}`);
+    socket.emit('output_stream', { agentId, data: `\n[PTY Process Exited with code ${exitCode}]\n` });
+    setTimeout(() => process.exit(exitCode), 100);
+  });
+
   socket.on('connect_error', (err) => {
     console.error('Connection error:', err.message);
+  });
+
+  // Also cleanup on process signal
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    cleanup();
+    process.exit(0);
   });
 };

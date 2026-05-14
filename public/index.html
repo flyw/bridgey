@@ -457,15 +457,22 @@
         #input-main-row {
             display: flex;
             gap: 10px;
+            align-items: flex-end;
         }
         #message-input {
             flex: 1;
-            padding: 10px;
+            padding: 10px 15px;
             border: 1px solid var(--border-color);
             border-radius: 20px;
             outline: none;
             background-color: var(--input-bg);
             color: var(--text-color);
+            resize: none;
+            overflow-y: hidden;
+            line-height: 1.5;
+            min-height: 40px;
+            max-height: 120px;
+            font-family: inherit;
         }
         #send-button {
             background-color: #0084ff;
@@ -474,6 +481,7 @@
             padding: 0 20px;
             border-radius: 20px;
             cursor: pointer;
+            height: 40px; /* Match min-height of input */
         }
         #status {
             font-size: 12px;
@@ -585,16 +593,24 @@
             </div>
             <form id="input-container">
                 <div id="controls-row">
+                    <div class="control-btn" data-key="\x03" style="color: #ff4d4f; border-color: #ff4d4f22;">Ctrl+C</div>
                     <div class="control-btn" data-key="\r">⏎ Enter</div>
                     <div class="control-btn" data-key="\t">⇥ Tab</div>
-                    <div class="control-btn" data-key="\x1b[Z">⇤ S-Tab</div>
                     <div class="control-btn" data-key="\x1b[A">↑ Up</div>
                     <div class="control-btn" data-key="\x1b[B">↓ Down</div>
+                    <div class="control-btn" data-key="\x02c" style="background-color: #0084ff11;">T-New</div>
+                    <div class="control-btn" data-key="\x020">W0</div>
+                    <div class="control-btn" data-key="\x021">W1</div>
+                    <div class="control-btn" data-key="\x022">W2</div>
+                    <div class="control-btn" data-key="\x023">W3</div>
+                    <div class="control-btn" data-key="\x024">W4</div>
+                    <div class="control-btn" data-key="\x025">W5</div>
+                    <div class="control-btn" data-key="\x1b[Z">⇤ S-Tab</div>
                     <div class="control-btn" data-key="\x04">␄ EOF</div>
                     <div class="control-btn" data-key="\x19">Ctrl+Y</div>
                 </div>
                 <div id="input-main-row">
-                    <input type="text" id="message-input" placeholder="Type a command..." autocomplete="off">
+                    <textarea id="message-input" placeholder="Type a command..." autocomplete="off" rows="1"></textarea>
                     <button type="submit" id="send-button">Send</button>
                 </div>
             </form>
@@ -992,19 +1008,41 @@
             document.querySelectorAll('.control-btn').forEach(btn => {
                 btn.onclick = () => {
                     if (!selectedAgentId) return;
-                    const key = btn.getAttribute('data-key');
-                    let decodedKey = '';
-                    if (key === '\\r') decodedKey = '\r';
-                    else if (key === '\\t') decodedKey = '\t';
-                    else if (key === '\\x1b[Z') decodedKey = '\x1b[Z';
-                    else if (key === '\\x1b[A') decodedKey = '\x1b[A';
-                    else if (key === '\\x1b[B') decodedKey = '\x1b[B';
-                    else if (key === '\\x04') decodedKey = '\x04';
-                    else if (key === '\\x19') decodedKey = '\x19';
+                    const rawKey = btn.getAttribute('data-key');
+                    // Generic unescaper for \r, \t, and \xNN
+                    const decodedKey = rawKey.replace(/\\r/g, '\r')
+                                             .replace(/\\t/g, '\t')
+                                             .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
                     
                     socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
                 };
             });
+
+            // Handle Auto-resize
+            messageInput.oninput = () => {
+                messageInput.style.height = 'auto';
+                const newHeight = messageInput.scrollHeight;
+                messageInput.style.height = newHeight + 'px';
+                
+                if (newHeight > 120) {
+                    messageInput.style.overflowY = 'auto';
+                    messageInput.style.height = '120px';
+                } else {
+                    messageInput.style.overflowY = 'hidden';
+                }
+            };
+
+            // Handle Enter key for submit (Shift+Enter for newline)
+            messageInput.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (typeof inputForm.requestSubmit === 'function') {
+                        inputForm.requestSubmit();
+                    } else {
+                        inputForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                    }
+                }
+            };
 
             inputForm.onsubmit = (e) => {
                 e.preventDefault();
@@ -1013,6 +1051,9 @@
                 
                 socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd + '\r' });
                 messageInput.value = '';
+                // Reset height
+                messageInput.style.height = 'auto';
+                messageInput.style.overflowY = 'hidden';
             };
         }
 
