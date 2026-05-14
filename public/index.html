@@ -560,10 +560,6 @@
                         <div class="nav-label">Host</div>
                         <div class="nav-value" id="nav-host">-</div>
                     </div>
-                    <div class="nav-item">
-                        <div class="nav-label">Command</div>
-                        <div class="nav-value" id="nav-command">-</div>
-                    </div>
                     <div id="info-more-icon">ⓘ</div>
                 </div>
             </div>
@@ -579,10 +575,6 @@
                     <div class="modal-row">
                         <div class="label">Hostname / IP</div>
                         <div class="value" id="modal-host">-</div>
-                    </div>
-                    <div class="modal-row">
-                        <div class="label">Active Command</div>
-                        <div class="value" id="modal-command">-</div>
                     </div>
                     <button class="modal-close" id="modal-close">Close</button>
                 </div>
@@ -644,14 +636,12 @@
         const menuToggle = document.getElementById('menu-toggle');
         const navCwd = document.getElementById('nav-cwd');
         const navHost = document.getElementById('nav-host');
-        const navCommand = document.getElementById('nav-command');
         const navInfo = document.getElementById('nav-info');
         const infoModal = document.getElementById('info-modal');
         const modalClose = document.getElementById('modal-close');
         
         const modalCwd = document.getElementById('modal-cwd');
         const modalHost = document.getElementById('modal-host');
-        const modalCommand = document.getElementById('modal-command');
         
         const strengthMeter = document.getElementById('strength-meter');
         const strengthBar = document.getElementById('strength-bar');
@@ -931,10 +921,11 @@
                     item.className = `agent-item ${agent.id === selectedAgentId ? 'selected' : ''}`;
                     item.onclick = () => selectAgent(agent.id);
 
+                    const hostDisplay = agent.hostname && agent.ip ? `${agent.hostname} (${agent.ip})` : (agent.hostname || agent.ip || '0.0.0.0');
+
                     item.innerHTML = `
                         <div class="agent-cwd" title="${agent.cwd}">${agent.cwd || '/'}</div>
-                        <div class="agent-command">${agent.command || 'Unknown Command'}</div>
-                        <div class="agent-host">${agent.hostname || agent.ip || '0.0.0.0'}</div>
+                        <div class="agent-host">${hostDisplay}</div>
                         <div class="agent-id">${agent.id}</div>
                         <div class="agent-status">
                             <span class="status-dot status-${agent.status}"></span>
@@ -963,16 +954,17 @@
                 const agent = agentsData.find(a => a.id === id);
                 if (agent) {
                     updateInputState(agent.status);
+                    
+                    const hostDisplay = agent.hostname && agent.ip ? `${agent.hostname} (${agent.ip})` : (agent.hostname || agent.ip || '-');
+
                     // Update Navbar Metadata
                     navCwd.textContent = agent.cwd || '/';
                     navCwd.title = agent.cwd || '/';
-                    navHost.textContent = agent.hostname || agent.ip || '-';
-                    navCommand.textContent = agent.command || '-';
+                    navHost.textContent = hostDisplay;
                     
                     // Update Modal Metadata
                     modalCwd.textContent = agent.cwd || '/';
-                    modalHost.textContent = agent.hostname || agent.ip || '-';
-                    modalCommand.textContent = agent.command || '-';
+                    modalHost.textContent = hostDisplay;
                 }
             }
 
