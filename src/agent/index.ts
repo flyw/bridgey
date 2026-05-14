@@ -116,25 +116,37 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
       const ext = path.extname(payload.filename) || '.bin';
       const tmpPath = path.join('/tmp', `bridgey_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
       fs.writeFileSync(tmpPath, payload.data);
-      console.log(`File saved to ${tmpPath}`);
+      console.log(`File saved to ${tmpPath} (${payload.data.length} bytes)`);
 
-      // Attempt to copy to clipboard
-      // We check for xclip (X11) or wl-copy (Wayland)
+      // Clipboard sync logic
       const isImage = /\.(png|jpg|jpeg|gif|bmp)$/i.test(tmpPath);
       
-      try {
+      // Try to find a valid DISPLAY if not set
+      const env = { ...process.env };
+      if (!env.DISPLAY) env.DISPLAY = ':10'; // Common for XRDP as seen in ps aux
+
+      const syncToClipboard = () => {
         if (isImage) {
-          // Try image copy first
-          spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath]);
-          spawn('sh', ['-c', `wl-copy < ${tmpPath}`]); 
-        } else {
-          // Plain text/path copy
-          spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`]);
-          spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`]);
+          console.log(`Attempting to sync image ${tmpPath} to clipboard...`);
+          // Try xclip for image
+          const xclipImg = spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath], { env });
+          xclipImg.on('error', (err) => console.error('xclip image error:', err));
+          
+          // Try wl-copy as fallback
+          const wlCopy = spawn('sh', ['-c', `wl-copy < ${tmpPath}`], { env });
+          wlCopy.on('error', (err) => console.error('wl-copy error:', err));
         }
-      } catch (clipErr) {
-        console.warn('Failed to sync to remote clipboard:', clipErr);
-      }
+        
+        // Also always sync the path as text as a fallback
+        console.log(`Syncing path ${tmpPath} to clipboard as text...`);
+        const xclipText = spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`], { env });
+        xclipText.on('error', (err) => console.error('xclip text error:', err));
+        
+        const wlCopyText = spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`], { env });
+        wlCopyText.on('error', (err) => console.error('wl-copy text error:', err));
+      };
+
+      syncToClipboard();
 
       socket.emit('upload_res', { 
         agentId, 
