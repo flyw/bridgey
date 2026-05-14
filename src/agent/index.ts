@@ -62,7 +62,12 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     }
   });
 
-  const env = { ...process.env, TERM: 'xterm-256color' };
+  const env: any = { ...process.env, TERM: 'xterm-256color' };
+  
+  // Set DISPLAY for X11 clipboard access (useful in headless/xrdp environments)
+  if (!env.DISPLAY) {
+    env.DISPLAY = ':10'; 
+  }
 
   // Get initial terminal size if available
   const initialCols = process.stdout.columns || 80;
