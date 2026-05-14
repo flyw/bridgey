@@ -111,6 +111,46 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     }
   });
 
+  socket.on('file_upload', (payload: { filename: string, data: Buffer }) => {
+    try {
+      const ext = path.extname(payload.filename) || '.bin';
+      const tmpPath = path.join('/tmp', `bridgey_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
+      fs.writeFileSync(tmpPath, payload.data);
+      console.log(`File saved to ${tmpPath}`);
+
+      // Attempt to copy to clipboard
+      // We check for xclip (X11) or wl-copy (Wayland)
+      const isImage = /\.(png|jpg|jpeg|gif|bmp)$/i.test(tmpPath);
+      
+      try {
+        if (isImage) {
+          // Try image copy first
+          spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath]);
+          spawn('sh', ['-c', `wl-copy < ${tmpPath}`]); 
+        } else {
+          // Plain text/path copy
+          spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`]);
+          spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`]);
+        }
+      } catch (clipErr) {
+        console.warn('Failed to sync to remote clipboard:', clipErr);
+      }
+
+      socket.emit('upload_res', { 
+        agentId, 
+        filepath: tmpPath, 
+        success: true 
+      });
+    } catch (err: any) {
+      console.error('File upload failed:', err);
+      socket.emit('upload_res', { 
+        agentId, 
+        success: false, 
+        error: err.message 
+      });
+    }
+  });
+
   const cleanup = () => {
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(false);

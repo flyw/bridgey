@@ -134,6 +134,10 @@ export const runRelay = (config: Config) => {
         }
       });
 
+      socket.on('upload_res', (payload: { agentId: string, filepath: string, success: boolean, error?: string }) => {
+        io.emit('upload_res', payload);
+      });
+
       socket.on('disconnect', () => {
         console.log(`Agent disconnected: ${agentId}`);
         agents.delete(agentId);
@@ -173,6 +177,16 @@ export const runRelay = (config: Config) => {
         const agent = agents.get(targetId);
         if (agent && agent.info.status === 'alive') {
           agent.socket.emit('resize_pty', { cols: payload.cols, rows: payload.rows });
+        }
+      });
+
+      socket.on('file_upload', (payload: { agentId: string, filename: string, data: ArrayBuffer | Buffer }) => {
+        const targetId = String(payload.agentId);
+        const agent = agents.get(targetId);
+        if (agent && agent.info.status === 'alive') {
+          agent.socket.emit('file_upload', payload);
+        } else {
+          socket.emit('error', 'Agent not connected or not alive');
         }
       });
     }

@@ -101,41 +101,37 @@
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
+            color: var(--message-user-bg);
             font-size: 12px;
-            color: #0084ff;
-            user-select: none;
-            background: var(--input-bg);
-            padding: 0 5px;
+            font-weight: bold;
         }
         .strength-meter {
             height: 4px;
-            width: 100%;
-            background: var(--border-color);
-            margin-top: -5px;
-            margin-bottom: 10px;
+            background: #eee;
+            margin: 5px 0;
             border-radius: 2px;
             overflow: hidden;
-            display: none;
         }
         #strength-bar {
             height: 100%;
-            width: 0%;
-            transition: width 0.3s, background-color 0.3s;
+            width: 0;
+            background: #ff4d4f;
+            transition: width 0.3s, background 0.3s;
         }
         #strength-text {
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 10px;
-            display: none;
         }
-        .auth-card button {
+        #auth-submit {
             width: 100%;
             padding: 12px;
-            background: #0084ff;
+            background-color: var(--message-user-bg);
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            margin-top: 10px;
         }
 
         /* Chat Screen Styles */
@@ -143,57 +139,56 @@
             display: none;
             flex-direction: row;
             height: 100vh;
-            overflow: hidden;
         }
         #sidebar {
-            width: 280px;
+            width: 260px;
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            padding: 15px;
-            box-sizing: border-box;
-            color: var(--text-color);
-            transition: transform 0.3s ease, margin-left 0.3s ease;
-            position: relative;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-        #sidebar.collapsed {
-            margin-left: -280px;
-            transform: translateX(0);
+            padding: 20px 15px;
+            transition: transform 0.3s ease;
         }
         #sidebar h1 {
             font-size: 20px;
-            margin-top: 10px;
-            margin-bottom: 20px;
-            color: #0084ff;
+            margin: 0 0 20px 0;
+            color: var(--message-user-bg);
         }
-        
-        /* Navbar Styles */
+
+        /* Mobile sidebar toggle */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+        }
+
         #navbar {
-            height: calc(50px + var(--safe-area-inset-top));
-            padding-top: var(--safe-area-inset-top);
+            height: 60px;
             background-color: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            padding-left: 15px;
-            padding-right: 15px;
+            padding: 0 15px;
             gap: 15px;
-            flex-shrink: 0;
-            z-index: 90;
         }
         #menu-toggle {
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
-            user-select: none;
-            padding: 5px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: none;
         }
+        @media (max-width: 768px) {
+            #menu-toggle { display: block; }
+        }
+
         #nav-info {
             flex: 1;
             display: flex;
@@ -483,6 +478,88 @@
             cursor: pointer;
             height: 40px; /* Match min-height of input */
         }
+        #upload-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--message-user-bg);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        #upload-btn:hover { transform: scale(1.1); }
+
+        /* Upload Modal */
+        #upload-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-content {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        #paste-area {
+            width: 100%;
+            height: 150px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #paste-area:focus { border-color: var(--message-user-bg); }
+        #paste-area img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+        }
+        .toast {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: fadeInOut 5s forwards;
+            white-space: nowrap;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
         #status {
             font-size: 12px;
             text-align: center;
@@ -493,6 +570,23 @@
     </style>
 </head>
 <body>
+    <div id="toast-container"></div>
+    <!-- Upload Modal -->
+    <div id="upload-modal">
+        <div class="upload-content">
+            <h3>Upload to Agent</h3>
+            <p style="font-size: 12px; color: #888;">Paste image or click to select file</p>
+            <div id="paste-area" contenteditable="true">
+                Click here & Paste (Ctrl+V)
+            </div>
+            <input type="file" id="file-input" style="display: none;" accept="image/*">
+            <div style="display: flex; gap: 10px;">
+                <button class="modal-close" style="background: #666; flex: 1;" id="upload-cancel">Cancel</button>
+                <button class="modal-close" style="flex: 2;" id="upload-submit">Upload</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Authentication Screen -->
     <div id="auth-screen">
         <div class="auth-card" id="login-card">
@@ -587,6 +681,7 @@
                 <div id="controls-row">
                     <!-- Basic Controls -->
                     <div class="control-btn" data-key="\x03" style="color: #ff4d4f; border-color: #ff4d4f44;">Ctrl+C</div>
+                    <div class="control-btn" data-key="\x16" style="color: #0084ff; border-color: #0084ff44;">Ctrl+V</div>
                     <div class="control-btn" data-key="\r">⏎ Enter</div>
                     <div class="control-btn" data-key="\x7f">⌫ BS</div>
                     <div class="control-btn" data-key="\t">⇥ Tab</div>
@@ -609,6 +704,7 @@
                     <div class="control-btn" data-key="\x025" style="background-color: #0084ff11;">W5</div>
                 </div>
                 <div id="input-main-row">
+                    <button type="button" id="upload-btn">+</button>
                     <textarea id="message-input" placeholder="Type a command..." autocomplete="off" rows="1"></textarea>
                     <button type="submit" id="send-button">Send</button>
                 </div>
@@ -656,6 +752,16 @@
         const messageInput = document.getElementById('message-input');
         const agentListEl = document.getElementById('agent-list');
 
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadModal = document.getElementById('upload-modal');
+        const uploadCancel = document.getElementById('upload-cancel');
+        const uploadSubmit = document.getElementById('upload-submit');
+        const pasteArea = document.getElementById('paste-area');
+        const fileInput = document.getElementById('file-input');
+        const toastContainer = document.getElementById('toast-container');
+
+        let currentFile = null;
+
         let isSetup = false;
         let selectedAgentId = null;
         let agentsData = [];
@@ -682,6 +788,14 @@
             
             agentTerminals[agentId] = { term, fitAddon };
             return agentTerminals[agentId];
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
         }
 
         // Visibility Toggles
@@ -713,89 +827,31 @@
             if (strength <= 25) {
                 strengthBar.style.backgroundColor = '#ff4d4f';
                 strengthText.textContent = 'Weak';
-                strengthText.style.color = '#ff4d4f';
             } else if (strength <= 75) {
                 strengthBar.style.backgroundColor = '#faad14';
                 strengthText.textContent = 'Medium';
-                strengthText.style.color = '#faad14';
             } else {
                 strengthBar.style.backgroundColor = '#52c41a';
                 strengthText.textContent = 'Strong';
-                strengthText.style.color = '#52c41a';
             }
         };
 
-        // Theme Management
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('bridgey_theme', theme);
-            if (theme === 'dark') {
-                themeIcon.textContent = '☀️';
-                themeText.textContent = 'Light Mode';
-            } else {
-                themeIcon.textContent = '🌙';
-                themeText.textContent = 'Dark Mode';
-            }
-        }
-
-        themeToggle.onclick = () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-        };
-
-        refreshBtn.onclick = () => {
-            location.reload();
-        };
-
-        // Sidebar Toggle Logic (Hamburger Menu)
-        menuToggle.onclick = () => {
-            sidebar.classList.toggle('collapsed');
-            localStorage.setItem('bridgey_sidebar_collapsed', sidebar.classList.contains('collapsed'));
-        };
-
-        // Restore sidebar state
-        if (localStorage.getItem('bridgey_sidebar_collapsed') === 'true') {
-            sidebar.classList.add('collapsed');
-        }
-
-        // Info Modal Toggle
-        navInfo.onclick = () => {
-            if (window.innerWidth <= 600) {
-                infoModal.style.display = 'flex';
-            }
-        };
-        modalClose.onclick = () => {
-            infoModal.style.display = 'none';
-        };
-        window.onclick = (event) => {
-            if (event.target == infoModal) {
-                infoModal.style.display = 'none';
-            }
-        };
-
-        // Initialize theme on load
-        const savedTheme = localStorage.getItem('bridgey_theme') || 'light';
-        setTheme(savedTheme);
-
-        // Check initialization status
         async function checkStatus() {
-            // Check for existing session
-            const storedToken = localStorage.getItem('bridgey_token');
-            if (storedToken) {
-                startChat(storedToken);
-                return;
-            }
-
-            const res = await fetch('/api/status');
-            const data = await res.json();
-            if (data.needsSetup) {
-                isSetup = true;
-                authTitle.textContent = 'Initial Setup';
-                authDesc.textContent = 'Create your administrator account.';
-                authSubmit.textContent = 'Create Account';
-                setupOnly.style.display = 'block';
-                strengthMeter.style.display = 'block';
-                strengthText.style.display = 'block';
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                isSetup = data.needsSetup;
+                if (isSetup) {
+                    authTitle.textContent = 'Setup Bridgey';
+                    authDesc.textContent = 'Set your admin credentials to begin.';
+                    setupOnly.style.display = 'block';
+                    authSubmit.textContent = 'Complete Setup';
+                } else {
+                    const token = localStorage.getItem('bridgey_token');
+                    if (token) startChat(token);
+                }
+            } catch (e) {
+                console.error('Failed to check status:', e);
             }
         }
 
@@ -810,7 +866,6 @@
             }
 
             const endpoint = isSetup ? '/api/setup' : '/api/login';
-
             const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -906,6 +961,14 @@
                 term.write(data);
             });
 
+            socket.on('upload_res', (payload) => {
+                if (payload.success) {
+                    showToast(`File saved to agent: ${payload.filepath}`);
+                } else {
+                    showToast(`Upload failed: ${payload.error}`);
+                }
+            });
+
             // Handle window resize
             window.addEventListener('resize', () => {
                 if (selectedAgentId && agentTerminals[selectedAgentId]) {
@@ -980,29 +1043,6 @@
                 }
             }
 
-            function syncResize(agentId) {
-                const termInfo = agentTerminals[agentId];
-                if (termInfo && termInfo.term) {
-                    const { cols, rows } = termInfo.term;
-                    console.log(`Syncing resize for ${agentId}: ${cols}x${rows}`);
-                    socket.emit('resize_pty', { agentId, cols, rows });
-                }
-            }
-
-            socket.on('output_stream', (payload) => {
-                const { agentId, data } = payload;
-                const { term } = getOrCreateTerminal(agentId);
-                term.write(data);
-            });
-
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                if (selectedAgentId && agentTerminals[selectedAgentId]) {
-                    agentTerminals[selectedAgentId].fitAddon.fit();
-                    syncResize(selectedAgentId);
-                }
-            });
-
             // Handle Soft Keyboard Buttons
             document.querySelectorAll('.control-btn').forEach(btn => {
                 btn.onclick = () => {
@@ -1060,6 +1100,65 @@
                 // Reset height
                 messageInput.style.height = 'auto';
                 messageInput.style.overflowY = 'hidden';
+            };
+
+            // Upload Logic
+            uploadBtn.onclick = () => {
+                uploadModal.style.display = 'flex';
+                pasteArea.focus();
+            };
+
+            uploadCancel.onclick = () => {
+                uploadModal.style.display = 'none';
+                currentFile = null;
+                pasteArea.innerHTML = 'Click here & Paste (Ctrl+V)';
+            };
+
+            pasteArea.onpaste = (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        const blob = item.getAsFile();
+                        currentFile = blob;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            pasteArea.innerHTML = `<img src="${event.target.result}">`;
+                        };
+                        reader.readAsDataURL(blob);
+                    }
+                }
+            };
+
+            pasteArea.onclick = () => fileInput.click();
+            fileInput.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    const blob = e.target.files[0];
+                    currentFile = blob;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        pasteArea.innerHTML = `<img src="${event.target.result}">`;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            };
+
+            uploadSubmit.onclick = () => {
+                if (!currentFile || !selectedAgentId) {
+                    alert('Please select or paste an image first');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    socket.emit('file_upload', {
+                        agentId: selectedAgentId,
+                        filename: currentFile.name || 'pasted_image.png',
+                        data: reader.result
+                    });
+                    uploadModal.style.display = 'none';
+                    currentFile = null;
+                    pasteArea.innerHTML = 'Click here & Paste (Ctrl+V)';
+                };
+                reader.readAsArrayBuffer(currentFile);
             };
         }
 
