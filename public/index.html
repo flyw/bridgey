@@ -147,12 +147,42 @@
             display: flex;
             flex-direction: column;
             padding: 20px 15px;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, width 0.3s ease, padding 0.3s ease;
+            position: relative;
+            z-index: 100;
         }
+        #sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+            transform: translateX(-100%);
+        }
+
         #sidebar h1 {
             font-size: 20px;
             margin: 0 0 20px 0;
             color: var(--message-user-bg);
+        }
+
+        /* Sidebar Close Button (X) */
+        #sidebar-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        #sidebar-close:hover {
+            background: var(--bg-color);
         }
 
         /* Mobile sidebar toggle */
@@ -162,11 +192,12 @@
                 left: 0;
                 top: 0;
                 bottom: 0;
-                z-index: 100;
                 transform: translateX(-100%);
             }
             #sidebar.open {
                 transform: translateX(0);
+                width: 260px;
+                padding: 20px 15px;
                 box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             }
         }
@@ -183,10 +214,18 @@
         #menu-toggle {
             font-size: 24px;
             cursor: pointer;
-            display: none;
+            display: block; /* Always show */
+            color: var(--message-user-bg);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background 0.2s;
         }
-        @media (max-width: 768px) {
-            #menu-toggle { display: block; }
+        #menu-toggle:hover {
+            background: var(--bg-color);
         }
 
         #nav-info {
@@ -623,6 +662,7 @@
     <!-- Chat Screen -->
     <div id="chat-screen">
         <div id="sidebar">
+            <div id="sidebar-close">×</div>
             <h1>Bridgey</h1>
             
             <div class="sidebar-section">Active Agents</div>
@@ -756,14 +796,41 @@
         const modalHost = document.getElementById('modal-host');
         const modalIp = document.getElementById('modal-ip');
 
+        const sidebarClose = document.getElementById('sidebar-close');
+
         // Sidebar Toggle Logic
         menuToggle.onclick = (e) => {
             e.stopPropagation();
-            sidebar.classList.toggle('open');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('open');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                // Force terminal resize after animation
+                setTimeout(() => {
+                    if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                        agentTerminals[selectedAgentId].fitAddon.fit();
+                        syncResize(selectedAgentId);
+                    }
+                }, 310);
+            }
+        };
+
+        sidebarClose.onclick = () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+            } else {
+                sidebar.classList.add('collapsed');
+                setTimeout(() => {
+                    if (selectedAgentId && agentTerminals[selectedAgentId]) {
+                        agentTerminals[selectedAgentId].fitAddon.fit();
+                        syncResize(selectedAgentId);
+                    }
+                }, 310);
+            }
         };
 
         document.addEventListener('click', (e) => {
-            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuToggle) {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuToggle) {
                 sidebar.classList.remove('open');
             }
         });
