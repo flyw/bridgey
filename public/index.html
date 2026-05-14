@@ -1043,6 +1043,12 @@
                 }
             });
 
+            refreshBtn.onclick = () => {
+                console.log('Forcing refresh...');
+                socket.emit('get_init_state');
+                showToast('Syncing latest state...');
+            };
+
             socket.on('init_state', (data) => {
                 console.log('Received init_state:', data);
                 agentsData = data.agents;
