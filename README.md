@@ -59,10 +59,11 @@ agy-mobile relay gen-token
 ```
 
 #### Client Setup (Agent)
-On your local machine, run the interactive setup and paste the token from the step above:
+On your local machine, simply run the agent. If it's your first time, it will automatically guide you through the setup:
 ```bash
-agy-mobile agent setup
+agy-mobile
 ```
+(Or `npm run start` if not linked)
 
 ### 3. Start Relay
 
@@ -73,15 +74,15 @@ agy-mobile relay start
 
 ### 4. Start Agent
 
-On your local machine:
+On your local machine, just run:
 ```bash
-agy-mobile agent start
+agy-mobile
 ```
 This will:
-1. Create or attach to a tmux session named `agy-mobile`.
-2. Generate a persistent Agent ID based on your machine and session name.
-3. Automatically kill any previous agent processes taking over the same session.
-4. Stream the session to the Relay for remote access.
+1. **Auto-Configure**: Prompt for Relay URL and Token if missing.
+2. **Tmux Integration**: Create or attach to a tmux session named `agy-mobile`.
+3. **Session Management**: Automatically handle persistent IDs and take over stale processes.
+4. **Cloud Bridge**: Securely stream your session to the Relay.
 
 ### 5. Interaction Tips
 
