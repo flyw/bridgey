@@ -116,6 +116,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   });
 
   socket.on('input_cmd', (cmd) => {
+    console.log(`[Agent] Received input command: ${JSON.stringify(cmd)}`);
     ptyProcess.write(cmd);
   });
 

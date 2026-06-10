@@ -191,9 +191,11 @@ export const runRelay = (config: Config) => {
       socket.on('input_cmd', (payload: { agentId: string, cmd: string }) => {
         const targetId = String(payload.agentId);
         const agent = agents.get(targetId);
+        console.log(`[Relay] Input command for ${targetId}: ${JSON.stringify(payload.cmd)}`);
         if (agent && agent.info.status === 'alive') {
           agent.socket.emit('input_cmd', payload.cmd);
         } else {
+          console.warn(`[Relay] Agent ${targetId} not found or not alive`);
           socket.emit('error', 'Agent not connected or not alive');
         }
       });

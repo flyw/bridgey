@@ -43,12 +43,14 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior: none; /* Disable pull-to-refresh and glow */
             position: fixed; /* Lock viewport */
             width: 100%;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         /* Custom Scrollbar Styles */
         ::-webkit-scrollbar {
@@ -141,6 +143,7 @@
             display: none;
             flex-direction: row;
             height: 100vh;
+            height: 100dvh;
             position: fixed;
             top: 0;
             left: 0;
@@ -982,10 +985,12 @@
         let agentsData = [];
         let agentTerminals = {}; // agentId -> Terminal instance
         let shortcutsData = [];
+        let socket;
 
         function renderShortcuts() {
             const controlsRow = document.getElementById('controls-row');
             controlsRow.innerHTML = '';
+            console.log('Rendering shortcuts:', shortcutsData);
             
             shortcutsData.forEach((group, groupIdx) => {
                 group.items.forEach(item => {
@@ -1003,11 +1008,36 @@
                     }
 
                     btn.onclick = () => {
-                        if (!selectedAgentId) return;
-                        const decodedKey = item.key.replace(/\\r/g, '\r')
-                                                 .replace(/\\t/g, '\t')
-                                                 .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-                        socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
+                        if (!selectedAgentId) {
+                            showToast('No agent selected');
+                            return;
+                        }
+                        
+                        // Visual feedback
+                        const originalBg = btn.style.backgroundColor;
+                        btn.style.backgroundColor = '#0084ff44';
+                        setTimeout(() => btn.style.backgroundColor = originalBg, 100);
+
+                        console.log('Shortcut clicked:', item.label, item.key);
+                        
+                        // Robust unescaper
+                        let cmd = item.key;
+                        if (cmd) {
+                            cmd = cmd.replace(/\\r/g, '\r')
+                                     .replace(/\\n/g, '\n')
+                                     .replace(/\\t/g, '\t')
+                                     .replace(/\\b/g, '\b')
+                                     .replace(/\\e/g, '\x1b')
+                                     .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+                            
+                            console.log('Sending command to agent:', selectedAgentId, JSON.stringify(cmd));
+                            if (socket) {
+                                socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd });
+                            } else {
+                                console.error('Socket not initialized');
+                                showToast('Connection not ready');
+                            }
+                        }
                     };
                     controlsRow.appendChild(btn);
                 });
@@ -1205,7 +1235,7 @@
             authScreen.style.display = 'none';
             chatScreen.style.display = 'flex';
 
-            const socket = io({ auth: { token: token } });
+            socket = io({ auth: { token: token } });
 
             socket.on('connect', () => {
                 statusEl.textContent = 'Connected';
