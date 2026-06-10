@@ -19,6 +19,32 @@ const getLocalIp = () => {
   return '127.0.0.1';
 };
 
+const resolveCommand = (cmd: string): string => {
+  if (path.isAbsolute(cmd)) return cmd;
+  
+  // If it's just a command name, try to find it in PATH or common locations
+  const commonPaths = [
+    '/opt/homebrew/bin',   // Apple Silicon Homebrew
+    '/usr/local/bin',      // Intel Homebrew / Standard
+    '/usr/bin',
+    '/bin',
+    '/usr/sbin',
+    '/sbin'
+  ];
+
+  // First check if it's already in the environment PATH
+  const envPath = process.env.PATH || '';
+  const paths = [...envPath.split(path.delimiter), ...commonPaths];
+
+  for (const p of paths) {
+    const fullPath = path.join(p, cmd);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+  return cmd; // Fallback to original
+};
+
 export const runAgent = (config: Config, command: string, args: string[], sessionName?: string) => {
   // Use a persistent agentId if sessionName is provided, otherwise fallback to UUID
   const agentId = sessionName 
@@ -43,12 +69,14 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   const ip = getLocalIp();
   const hostname = os.hostname();
 
+  const resolvedCommand = resolveCommand(command);
+
   console.log(`Agent ID: ${agentId} (Session: ${sessionName || 'default'})`);
   console.log(`CWD: ${cwd}`);
   console.log(`IP: ${ip}`);
   console.log(`Hostname: ${hostname}`);
   console.log(`Connecting to relay at ${config.agent.serverUrl}...`);
-  console.log(`Executing command (PTY mode): ${command} ${args.join(' ')}`);
+  console.log(`Executing command (PTY mode): ${resolvedCommand} ${args.join(' ')}`);
 
   const socket = io(config.agent.serverUrl, {
     auth: { token: config.token },
@@ -75,7 +103,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
 
   let ptyProcess: pty.IPty;
   try {
-    ptyProcess = pty.spawn(command, args, {
+    ptyProcess = pty.spawn(resolvedCommand, args, {
       name: 'xterm-256color',
       cols: initialCols,
       rows: initialRows,
@@ -83,8 +111,9 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
       env: env as any
     });
   } catch (err: any) {
-    console.error(`\n❌ Failed to spawn process: "${command}"`);
+    console.error(`\n❌ Failed to spawn process: "${resolvedCommand}"`);
     console.error(`Error details: ${err.message}`);
+    console.error(`Current PATH: ${process.env.PATH}`);
     if (command === 'tmux') {
       console.error('\n💡 Hint: It looks like "tmux" is not installed or not in your PATH.');
       console.error('   On macOS, try: brew install tmux');
