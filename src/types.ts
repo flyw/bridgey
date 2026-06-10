@@ -1,3 +1,13 @@
+export interface Shortcut {
+  label: string;
+  key: string;
+}
+
+export interface ShortcutGroup {
+  name: string;
+  items: Shortcut[];
+}
+
 export interface Config {
   token: string;
   relay: {
@@ -5,6 +15,7 @@ export interface Config {
     host: string;
     webUser?: string;
     webPass?: string;
+    shortcuts?: ShortcutGroup[];
   };
   agent: {
     serverUrl: string;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Bridgey - CLI to Chat</title>
+    <title>Agy Mobile - CLI to Chat</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
@@ -650,7 +650,7 @@
     <!-- Authentication Screen -->
     <div id="auth-screen">
         <div class="auth-card" id="login-card">
-            <h2 id="auth-title">Login to Bridgey</h2>
+            <h2 id="auth-title">Login to Agy Mobile</h2>
             <p id="auth-desc">Please enter your credentials.</p>
             <input type="text" id="username" placeholder="Username">
             
@@ -677,7 +677,7 @@
     <div id="chat-screen">
         <div id="sidebar">
             <div id="sidebar-close">×</div>
-            <h1>Bridgey</h1>
+            <h1>Agy Mobile</h1>
             
             <div class="sidebar-section">Active Agents</div>
             <div id="agent-list">
@@ -694,6 +694,10 @@
                     <div class="sidebar-item" id="theme-toggle">
                         <span id="theme-icon">🌙</span>
                         <span id="theme-text">Dark Mode</span>
+                    </div>
+                    <div class="sidebar-item" id="shortcuts-btn">
+                        <span class="item-icon">⌨️</span>
+                        <span>Shortcuts</span>
                     </div>
                     <button id="logout-btn">
                         <span class="item-icon">🚪</span>
@@ -743,34 +747,27 @@
                 </div>
             </div>
             <div id="status">Connecting...</div>
+
+            <!-- Shortcuts Modal -->
+            <div id="shortcuts-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+                <div class="modal-content" style="width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                    <h3>Edit Shortcuts</h3>
+                    <div id="shortcuts-editor-list">
+                        <!-- Shortcut groups will be rendered here -->
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <button class="modal-close" id="shortcuts-save" style="flex: 1;">Save Changes</button>
+                        <button class="modal-close" id="shortcuts-cancel" style="flex: 1; background: #666;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="chat-container">
                 <div id="terminal-container"></div>
             </div>
             <form id="input-container">
                 <div id="controls-row">
-                    <!-- Basic Controls -->
-                    <div class="control-btn" data-key="\x03" style="color: #ff4d4f; border-color: #ff4d4f44;">Ctrl+C</div>
-                    <div class="control-btn" data-key="\x16" style="color: #0084ff; border-color: #0084ff44;">Ctrl+V</div>
-                    <div class="control-btn" data-key="\r">⏎ Enter</div>
-                    <div class="control-btn" data-key="\x7f">⌫ BS</div>
-                    <div class="control-btn" data-key="\t">⇥ Tab</div>
-                    <div class="control-btn" data-key="\x1b[A">↑ Up</div>
-                    <div class="control-btn" data-key="\x1b[B">↓ Down</div>
-                    <div class="control-btn" data-key="\x1b[D">← Left</div>
-                    <div class="control-btn" data-key="\x1b[C">→ Right</div>
-                    <div class="control-btn" data-key="\x1b[Z">⇤ S-Tab</div>
-                    <div class="control-btn" data-key="\x19">Ctrl+Y</div>
-
-                    <div style="width: 2px; background: var(--border-color); margin: 5px 2px; flex-shrink: 0;"></div>
-
-                    <!-- Tmux Controls -->
-                    <div class="control-btn" data-key="\x02c" style="background-color: #0084ff22; border-color: #0084ff44; color: #0084ff;">T-New</div>
-                    <div class="control-btn" data-key="\x020" style="background-color: #0084ff11;">W0</div>
-                    <div class="control-btn" data-key="\x021" style="background-color: #0084ff11;">W1</div>
-                    <div class="control-btn" data-key="\x022" style="background-color: #0084ff11;">W2</div>
-                    <div class="control-btn" data-key="\x023" style="background-color: #0084ff11;">W3</div>
-                    <div class="control-btn" data-key="\x024" style="background-color: #0084ff11;">W4</div>
-                    <div class="control-btn" data-key="\x025" style="background-color: #0084ff11;">W5</div>
+                    <!-- Shortcuts will be rendered dynamically -->
                 </div>
                 <div id="input-main-row">
                     <button type="button" id="upload-btn">+</button>
@@ -811,6 +808,12 @@
         const modalIp = document.getElementById('modal-ip');
 
         const sidebarClose = document.getElementById('sidebar-close');
+
+        const shortcutsBtn = document.getElementById('shortcuts-btn');
+        const shortcutsModal = document.getElementById('shortcuts-modal');
+        const shortcutsSave = document.getElementById('shortcuts-save');
+        const shortcutsCancel = document.getElementById('shortcuts-cancel');
+        const shortcutsEditorList = document.getElementById('shortcuts-editor-list');
 
         // Sidebar Toggle Logic
         menuToggle.onclick = (e) => {
@@ -894,12 +897,128 @@
         const fileInput = document.getElementById('file-input');
         const toastContainer = document.getElementById('toast-container');
 
-        let currentFile = null;
+        let editingShortcuts = [];
+
+        shortcutsBtn.onclick = () => {
+            editingShortcuts = JSON.parse(JSON.stringify(shortcutsData));
+            renderShortcutsEditor();
+            shortcutsModal.style.display = 'flex';
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+            }
+        };
+
+        shortcutsCancel.onclick = () => {
+            shortcutsModal.style.display = 'none';
+        };
+
+        shortcutsSave.onclick = async () => {
+            const res = await fetch('/api/shortcuts', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('agy_mobile_token')}`
+                },
+                body: JSON.stringify({ shortcuts: editingShortcuts })
+            });
+
+            if (res.ok) {
+                shortcutsData = editingShortcuts;
+                renderShortcuts();
+                shortcutsModal.style.display = 'none';
+                showToast('Shortcuts updated successfully');
+            } else {
+                alert('Failed to save shortcuts');
+            }
+        };
+
+        function renderShortcutsEditor() {
+            shortcutsEditorList.innerHTML = '';
+            editingShortcuts.forEach((group, gIdx) => {
+                const groupEl = document.createElement('div');
+                groupEl.style.marginBottom = '15px';
+                groupEl.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                        <span>${group.name}</span>
+                        <button type="button" class="add-item-btn" style="font-size: 10px; padding: 2px 5px;">+ Add</button>
+                    </div>
+                    <div class="group-items-list"></div>
+                `;
+
+                const itemsList = groupEl.querySelector('.group-items-list');
+                group.items.forEach((item, iIdx) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.style.display = 'flex';
+                    itemEl.style.gap = '5px';
+                    itemEl.style.marginBottom = '5px';
+                    itemEl.innerHTML = `
+                        <input type="text" value="${item.label}" placeholder="Label" style="flex: 1; font-size: 12px; padding: 5px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <input type="text" value="${item.key}" placeholder="Key" style="flex: 1; font-size: 12px; padding: 5px; font-family: monospace; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <button type="button" class="remove-item-btn" style="color: #ff4d4f; border: none; background: none; cursor: pointer; font-size: 18px;">×</button>
+                    `;
+                    const inputs = itemEl.querySelectorAll('input');
+                    inputs[0].oninput = (e) => group.items[iIdx].label = e.target.value;
+                    inputs[1].oninput = (e) => group.items[iIdx].key = e.target.value;
+
+                    itemEl.querySelector('.remove-item-btn').onclick = () => {
+                        group.items.splice(iIdx, 1);
+                        renderShortcutsEditor();
+                    };
+
+                    itemsList.appendChild(itemEl);
+                });
+
+                groupEl.querySelector('.add-item-btn').onclick = () => {
+                    group.items.push({ label: 'New', key: '' });
+                    renderShortcutsEditor();
+                };
+
+                shortcutsEditorList.appendChild(groupEl);
+            });
+        }
 
         let isSetup = false;
         let selectedAgentId = null;
         let agentsData = [];
         let agentTerminals = {}; // agentId -> Terminal instance
+        let shortcutsData = [];
+
+        function renderShortcuts() {
+            const controlsRow = document.getElementById('controls-row');
+            controlsRow.innerHTML = '';
+            
+            shortcutsData.forEach((group, groupIdx) => {
+                group.items.forEach(item => {
+                    const btn = document.createElement('div');
+                    btn.className = 'control-btn';
+                    btn.setAttribute('data-key', item.key);
+                    btn.textContent = item.label;
+                    
+                    // Apply some default styles based on group if needed
+                    if (groupIdx === 2) { // Group 3 (Tmux)
+                        btn.style.backgroundColor = '#0084ff11';
+                    } else if (item.label === 'Ctrl+C') {
+                        btn.style.color = '#ff4d4f';
+                        btn.style.borderColor = '#ff4d4f44';
+                    }
+
+                    btn.onclick = () => {
+                        if (!selectedAgentId) return;
+                        const decodedKey = item.key.replace(/\\r/g, '\r')
+                                                 .replace(/\\t/g, '\t')
+                                                 .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+                        socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
+                    };
+                    controlsRow.appendChild(btn);
+                });
+
+                if (groupIdx < shortcutsData.length - 1) {
+                    const divider = document.createElement('div');
+                    divider.style.cssText = 'width: 2px; background: var(--border-color); margin: 5px 2px; flex-shrink: 0;';
+                    controlsRow.appendChild(divider);
+                }
+            });
+        }
 
         const terminalOptions = {
             theme: {
@@ -1038,12 +1157,12 @@
                 const data = await res.json();
                 isSetup = data.needsSetup;
                 if (isSetup) {
-                    authTitle.textContent = 'Setup Bridgey';
+                    authTitle.textContent = 'Setup Agy Mobile';
                     authDesc.textContent = 'Set your admin credentials to begin.';
                     setupOnly.style.display = 'block';
                     authSubmit.textContent = 'Complete Setup';
                 } else {
-                    const token = localStorage.getItem('bridgey_token');
+                    const token = localStorage.getItem('agy_mobile_token');
                     if (token) startChat(token);
                 }
             } catch (e) {
@@ -1070,7 +1189,7 @@
 
             const data = await res.json();
             if (data.token) {
-                localStorage.setItem('bridgey_token', data.token);
+                localStorage.setItem('agy_mobile_token', data.token);
                 startChat(data.token);
             } else {
                 alert(data.error || 'Authentication failed');
@@ -1078,7 +1197,7 @@
         };
 
         logoutBtn.onclick = () => {
-            localStorage.removeItem('bridgey_token');
+            localStorage.removeItem('agy_mobile_token');
             location.reload();
         };
 
@@ -1102,7 +1221,7 @@
                 console.error('Socket connection error:', err);
                 if (err.message === 'Authentication error') {
                     console.log('Token expired or invalid. Clearing and redirecting to login...');
-                    localStorage.removeItem('bridgey_token');
+                    localStorage.removeItem('agy_mobile_token');
                     location.reload();
                 } else {
                     statusEl.textContent = 'Connection Error';
@@ -1113,10 +1232,10 @@
             refreshBtn.onclick = () => {
                 console.log('Cleaning cache and reloading...');
                 // Keep auth and theme, clear everything else if any
-                const token = localStorage.getItem('bridgey_token');
+                const token = localStorage.getItem('agy_mobile_token');
                 const theme = localStorage.getItem('theme');
                 localStorage.clear();
-                if (token) localStorage.setItem('bridgey_token', token);
+                if (token) localStorage.setItem('agy_mobile_token', token);
                 if (theme) localStorage.setItem('theme', theme);
                 
                 // Force reload
@@ -1126,6 +1245,8 @@
             socket.on('init_state', (data) => {
                 console.log('Received init_state:', data);
                 agentsData = data.agents;
+                shortcutsData = data.shortcuts || [];
+                renderShortcuts();
                 
                 // Initialize terminals and write history
                 Object.keys(data.history).forEach(id => {
@@ -1254,20 +1375,6 @@
                 }
             }
 
-            // Handle Soft Keyboard Buttons
-            document.querySelectorAll('.control-btn').forEach(btn => {
-                btn.onclick = () => {
-                    if (!selectedAgentId) return;
-                    const rawKey = btn.getAttribute('data-key');
-                    // Generic unescaper for \r, \t, and \xNN
-                    const decodedKey = rawKey.replace(/\\r/g, '\r')
-                                             .replace(/\\t/g, '\t')
-                                             .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-                    
-                    socket.emit('input_cmd', { agentId: selectedAgentId, cmd: decodedKey });
-                };
-            });
-
             // Handle Auto-resize
             messageInput.oninput = () => {
                 messageInput.style.height = 'auto';
@@ -1302,7 +1409,7 @@
                 // Send the command text first
                 socket.emit('input_cmd', { agentId: selectedAgentId, cmd: cmd });
                 
-                // Send the Enter key after 200ms to avoid Gemini's rapid input detection
+                // Send the Enter key after 200ms to avoid Antigravity's rapid input detection
                 setTimeout(() => {
                     socket.emit('input_cmd', { agentId: selectedAgentId, cmd: '\r' });
                 }, 200);

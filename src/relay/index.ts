@@ -61,6 +61,31 @@ export const runRelay = (config: Config) => {
     res.status(401).json({ error: 'Invalid credentials' });
   });
 
+  // Shortcuts API
+  app.get('/api/shortcuts', (req, res) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (token !== config.token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const currentConfig = getConfig();
+    res.json(currentConfig.relay.shortcuts);
+  });
+
+  app.post('/api/shortcuts', (req, res) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (token !== config.token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { shortcuts } = req.body;
+    if (!Array.isArray(shortcuts)) {
+      return res.status(400).json({ error: 'Invalid shortcuts format' });
+    }
+
+    updateEnv({ SHORTCUTS: JSON.stringify(shortcuts) });
+    config.relay.shortcuts = shortcuts;
+    res.json({ success: true });
+  });
+
   io.use((socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.query.token;
     if (token === config.token) {
@@ -159,7 +184,8 @@ export const runRelay = (config: Config) => {
 
       socket.emit('init_state', {
         agents: activeAgents,
-        history: historyPayload
+        history: historyPayload,
+        shortcuts: config.relay.shortcuts
       });
 
       socket.on('input_cmd', (payload: { agentId: string, cmd: string }) => {

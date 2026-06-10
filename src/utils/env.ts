@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const CONFIG_DIR = path.join(os.homedir(), '.bridgey');
+const CONFIG_DIR = path.join(os.homedir(), '.agy-mobile');
 const ENV_PATH = path.join(CONFIG_DIR, '.env');
 
 export const getEnvPath = () => ENV_PATH;
@@ -38,7 +38,7 @@ export const updateEnv = (updates: Record<string, string>) => {
   // Generate new content
   const newContent = Object.entries(envVars)
     .filter(([key]) => key) // Ensure key is not empty
-    .map(([key, val]) => `${key}=${val}`)
+    .map(([key, val]) => `${key}='${val}'`)
     .join('\n');
 
   fs.writeFileSync(envPath, newContent + '\n');
