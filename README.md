@@ -1,5 +1,7 @@
 # Agy Mobile 🌉
 
+![Demo](./demo.png)
+
 Agy Mobile is a proxy system that converts local interactive CLI tools (like Antigravity CLI) into a mobile-friendly web chat interface.
 
 It allows you to run CLI tools on a local machine (e.g., behind a NAT) and interact with them from anywhere via a web browser, presented as a chat conversation.
@@ -86,6 +88,19 @@ This will:
 - **Detaching**: To detach from the session locally without closing it, use `Ctrl+B, D`.
 - **Image Upload**: Click the **+** button in the Web UI, paste an image, and click **Upload**. Once you see the success notification, click the blue **Ctrl+V** button to paste the image into tools like Antigravity CLI.
 - **Tmux Navigation**: Use the blue **T-New** and **W0-W5** buttons in the Web UI to quickly manage tmux windows.
+
+## Troubleshooting
+
+### macOS: `posix_spawnp failed` when starting
+
+If you see an error like `❌ Failed to spawn process via node-pty` or `Error details: posix_spawnp failed`, it is usually because the `node-pty` helper binary lacks executable permissions on macOS.
+
+Run the following commands to fix it:
+
+```bash
+chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper
+chmod +x node_modules/node-pty/prebuilds/darwin-x64/spawn-helper
+```
 
 ## Development
 

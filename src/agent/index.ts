@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger, getLogPath } from '../utils/logger';
 
 const getLocalIp = () => {
   const interfaces = os.networkInterfaces();
@@ -88,7 +89,13 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     }
   });
 
-  const env: any = { ...process.env, TERM: 'xterm-256color' };
+  // Sanitize environment variables: node-pty can fail if values are not strings
+  const env: any = { TERM: 'xterm-256color' };
+  for (const key in process.env) {
+    if (process.env[key] !== undefined && process.env[key] !== null) {
+      env[key] = String(process.env[key]);
+    }
+  }
   
   // Set DISPLAY for X11 clipboard access on Linux ONLY
   if (os.platform() === 'linux' && !env.DISPLAY) {
@@ -115,15 +122,6 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
       console.log(`✅ File access check passed: ${resolvedCommand} is executable.`);
     } catch (e: any) {
       console.error(`❌ File access check failed: ${resolvedCommand}. Error: ${e.message}`);
-    }
-
-    // Diagnostic: Try native spawn as a test
-    try {
-      const testSpawn = spawn(resolvedCommand, ['-V']);
-      testSpawn.on('error', (e) => console.error(`❌ Native child_process.spawn test failed: ${e.message}`));
-      testSpawn.on('spawn', () => console.log('✅ Native child_process.spawn test passed.'));
-    } catch (e: any) {
-      console.error(`❌ Native child_process.spawn test exception: ${e.message}`);
     }
 
     ptyProcess = pty.spawn(resolvedCommand, args, {
@@ -168,6 +166,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   // Handle local terminal interaction
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
+    process.stdin.resume(); // Ensure stdin is flowing
     process.stdin.on('data', (data) => {
       ptyProcess.write(data);
     });
@@ -181,6 +180,11 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   }
 
   socket.on('connect', () => console.log('Connected to relay server (PTY mode)'));
+  socket.on('connect_error', (err) => {
+    console.error(`\n❌ Connection error: ${err.message}`);
+    console.error(`   Check if your Relay server is running at ${config.agent.serverUrl}`);
+    console.error('   Hint: Run "agy-mobile agent setup" to update the server URL.\n');
+  });
 
   ptyProcess.onData((data) => {
     socket.emit('output_stream', { agentId, data: data.toString() });
@@ -188,16 +192,16 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   });
 
   socket.on('input_cmd', (cmd) => {
-    console.log(`[Agent] Received input command: ${JSON.stringify(cmd)}`);
+    logger.debug(`[Agent] Received input command: ${JSON.stringify(cmd)}`);
     ptyProcess.write(cmd);
   });
 
   socket.on('resize_pty', ({ cols, rows }) => {
     try {
-      console.log(`Resizing PTY to ${cols}x${rows}`);
+      logger.debug(`Resizing PTY to ${cols}x${rows}`);
       ptyProcess.resize(cols, rows);
     } catch (e) {
-      console.error('Failed to resize PTY:', e);
+      logger.error('Failed to resize PTY:', e);
     }
   });
 
@@ -217,7 +221,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
       }
 
       fs.writeFileSync(tmpPath, payload.data);
-      console.log(`File saved to ${tmpPath} (${payload.data.length} bytes, target: ${payload.target || 'tmp'})`);
+      logger.log(`File saved to ${tmpPath} (${payload.data.length} bytes, target: ${payload.target || 'tmp'})`);
 
       // Clipboard sync logic
       const isImage = /\.(png|jpg|jpeg|gif|bmp)$/i.test(tmpPath);
@@ -228,12 +232,12 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
 
       const syncToClipboard = () => {
         if (isImage) {
-          console.log(`Syncing image ${tmpPath} to clipboard...`);
+          logger.log(`Syncing image ${tmpPath} to clipboard...`);
           // Use xclip for image. We don't overwrite with text if it's an image
           spawn('xclip', ['-selection', 'clipboard', '-t', `image/${ext.slice(1) || 'png'}`, '-i', tmpPath], { env, detached: true, stdio: 'ignore' }).unref();
           spawn('sh', ['-c', `wl-copy < ${tmpPath}`], { env, detached: true, stdio: 'ignore' }).unref();
         } else {
-          console.log(`Syncing path ${tmpPath} to clipboard as text...`);
+          logger.log(`Syncing path ${tmpPath} to clipboard as text...`);
           spawn('sh', ['-c', `echo -n "${tmpPath}" | xclip -selection clipboard`], { env, detached: true, stdio: 'ignore' }).unref();
           spawn('sh', ['-c', `echo -n "${tmpPath}" | wl-copy`], { env, detached: true, stdio: 'ignore' }).unref();
         }
@@ -276,10 +280,6 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     console.log(`PTY process exited with code ${exitCode}`);
     socket.emit('output_stream', { agentId, data: `\n[PTY Process Exited with code ${exitCode}]\n` });
     setTimeout(() => process.exit(exitCode), 100);
-  });
-
-  socket.on('connect_error', (err) => {
-    console.error('Connection error:', err.message);
   });
 
   // Also cleanup on process signal

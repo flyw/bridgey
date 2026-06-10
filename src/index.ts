@@ -10,14 +10,68 @@ import inquirer from 'inquirer';
 const firstArg = process.argv[2];
 const knownSubcommands = ['relay', 'agent', '-h', '--help', '-v', '--version'];
 
-if (!firstArg || (!knownSubcommands.includes(firstArg) && !firstArg.startsWith('-'))) {
-  const config = getConfig();
-  const customArgs = process.argv.slice(2);
+const startAgentWithSetup = async (customArgs: string[] = []) => {
+  let config = getConfig();
+  
+  // Check if it's the first time (default 0.0.0.0 URL or missing token)
+  if (config.agent.serverUrl.includes('0.0.0.0') || !config.token) {
+    console.log('👋 Welcome to Agy Mobile! It looks like this is your first time or the agent is not configured.');
+    console.log('Let\'s set up your connection to the Relay server.\n');
+    await runAgentSetup();
+    // Reload config after setup
+    config = getConfig();
+  }
+
   const tmuxArgs = ['new-session', '-A', '-s', 'agy-mobile'];
   if (customArgs.length > 0) {
     tmuxArgs.push(...customArgs);
   }
   runAgent(config, 'tmux', tmuxArgs, 'agy-mobile');
+};
+
+const runAgentSetup = async () => {
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'host',
+      message: 'Enter relay server host (e.g., 1.2.3.4):',
+      validate: (input) => input.length > 0 || 'Host is required'
+    },
+    {
+      type: 'input',
+      name: 'token',
+      message: 'Enter agent access token:',
+    },
+    {
+      type: 'input',
+      name: 'port',
+      message: 'Enter relay server port:',
+      default: '3000'
+    }
+  ]);
+
+  const { host, token, port } = answers;
+  const finalPort = port || '3000';
+  const protocol = host.startsWith('http') ? '' : 'http://';
+  const baseUrl = host.includes(':') && !host.startsWith('http://') && !host.startsWith('https://') 
+    ? host 
+    : `${host}:${finalPort}`;
+  const url = `${protocol}${baseUrl}`;
+
+  const updates: Record<string, string> = {
+    RELAY_URL: url
+  };
+  if (token) updates['BRIDGE_TOKEN'] = token;
+
+  updateEnv(updates);
+  console.log('\n✅ Agent configuration updated!');
+  console.log(`Relay URL: ${url}`);
+  if (token) console.log(`Token:     ${token}`);
+};
+
+if (!firstArg || (!knownSubcommands.includes(firstArg) && !firstArg.startsWith('-'))) {
+  const customArgs = process.argv.slice(2);
+  startAgentWithSetup(customArgs);
 } else {
   const program = new Command();
 
@@ -55,51 +109,14 @@ if (!firstArg || (!knownSubcommands.includes(firstArg) && !firstArg.startsWith('
     .command('start')
     .description('Start the agent and attach to/create a tmux session')
     .action(() => {
-      const config = getConfig();
-      runAgent(config, 'tmux', ['new-session', '-A', '-s', 'agy-mobile'], 'agy-mobile');
+      startAgentWithSetup();
     });
 
   agent
     .command('setup')
     .description('Interactive setup for the agent connection')
     .action(async () => {
-      const answers = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'host',
-          message: 'Enter relay server host (e.g., 1.2.3.4):',
-          validate: (input) => input.length > 0 || 'Host is required'
-        },
-        {
-          type: 'input',
-          name: 'token',
-          message: 'Enter agent access token:',
-        },
-        {
-          type: 'input',
-          name: 'port',
-          message: 'Enter relay server port:',
-          default: '3000'
-        }
-      ]);
-
-      const { host, token, port } = answers;
-      const finalPort = port || '3000';
-      const protocol = host.startsWith('http') ? '' : 'http://';
-      const baseUrl = host.includes(':') && !host.startsWith('http://') && !host.startsWith('https://') 
-        ? host 
-        : `${host}:${finalPort}`;
-      const url = `${protocol}${baseUrl}`;
-
-      const updates: Record<string, string> = {
-        RELAY_URL: url
-      };
-      if (token) updates['BRIDGE_TOKEN'] = token;
-
-      updateEnv(updates);
-      console.log('\n✅ Agent configuration updated!');
-      console.log(`Relay URL: ${url}`);
-      if (token) console.log(`Token:     ${token}`);
+      await runAgentSetup();
     });
 
   program.parse();
