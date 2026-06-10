@@ -69,14 +69,12 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   const ip = getLocalIp();
   const hostname = os.hostname();
 
-  const resolvedCommand = resolveCommand(command);
-
   console.log(`Agent ID: ${agentId} (Session: ${sessionName || 'default'})`);
   console.log(`CWD: ${cwd}`);
   console.log(`IP: ${ip}`);
   console.log(`Hostname: ${hostname}`);
+  console.log(`Arch: ${process.arch} (Node ${process.version})`);
   console.log(`Connecting to relay at ${config.agent.serverUrl}...`);
-  console.log(`Executing command (PTY mode): ${resolvedCommand} ${args.join(' ')}`);
 
   const socket = io(config.agent.serverUrl, {
     auth: { token: config.token },
@@ -92,14 +90,22 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
 
   const env: any = { ...process.env, TERM: 'xterm-256color' };
   
-  // Set DISPLAY for X11 clipboard access (useful in headless/xrdp environments)
-  if (!env.DISPLAY) {
+  // Set DISPLAY for X11 clipboard access on Linux ONLY
+  if (os.platform() === 'linux' && !env.DISPLAY) {
     env.DISPLAY = ':10'; 
+  }
+  
+  // Ensure SHELL is set on Mac
+  if (os.platform() === 'darwin' && !env.SHELL) {
+    env.SHELL = '/bin/zsh';
   }
 
   // Get initial terminal size if available
   const initialCols = process.stdout.columns || 80;
   const initialRows = process.stdout.rows || 30;
+
+  const resolvedCommand = resolveCommand(command);
+  console.log(`Executing command (PTY mode): ${resolvedCommand} ${args.join(' ')}`);
 
   let ptyProcess: pty.IPty;
   try {
