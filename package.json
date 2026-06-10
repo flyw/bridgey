@@ -1,14 +1,14 @@
 {
-  "name": "bridgey",
+  "name": "agy-mobile",
   "version": "1.0.0",
   "main": "dist/index.js",
   "bin": {
-    "bridgey": "dist/index.js"
+    "agy-mobile": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "bridgey": "ts-node src/index.ts",
+    "agy-mobile": "ts-node src/index.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],

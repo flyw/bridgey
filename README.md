@@ -1,13 +1,13 @@
-# Bridgey 🌉
+# Agy Mobile 🌉
 
-Bridgey is a proxy system that converts local interactive CLI tools (like Gemini CLI) into a mobile-friendly web chat interface.
+Agy Mobile is a proxy system that converts local interactive CLI tools (like Antigravity CLI) into a mobile-friendly web chat interface.
 
 It allows you to run CLI tools on a local machine (e.g., behind a NAT) and interact with them from anywhere via a web browser, presented as a chat conversation.
 
 ## Features
 
 - **Agent-Relay Architecture**: Securely bridge local CLI tools to the public internet.
-- **Persistent Sessions**: Built-in **tmux** integration with robust mouse support (scrolling/clicking) enabled by default. Even if you disconnect, your CLI session keeps running.
+- **Persistent Sessions**: Built-in **tmux** integration. Even if you disconnect, your CLI session keeps running.
 - **Smart Re-entry**: Restarting the agent automatically attaches to the existing session and preserves chat history on the web.
 - **Takeover Logic**: Automatically terminates stale agent processes to prevent duplicate streams.
 - **Remote Image Upload**: Upload images via the Web UI (paste or file select). Files are saved to `/tmp/` on the agent machine and automatically synced to the remote clipboard.
@@ -30,7 +30,7 @@ It allows you to run CLI tools on a local machine (e.g., behind a NAT) and inter
 ### 1. Installation
 
 **Prerequisite: tmux & Clipboard tools**
-Bridgey requires `tmux`. For remote clipboard sync (image upload feature), `xclip` or `wl-copy` is recommended on the Agent machine.
+Agy Mobile requires `tmux`. For remote clipboard sync (image upload feature), `xclip` or `wl-copy` is recommended on the Agent machine.
 ```bash
 # Ubuntu/Debian
 sudo apt-get install tmux xclip
@@ -39,10 +39,10 @@ sudo apt-get install tmux xclip
 brew install tmux
 ```
 
-**Bridgey Installation**
+**Installation**
 ```bash
-git clone https://github.com/youruser/bridgey.git
-cd bridgey
+git clone https://github.com/youruser/agy-mobile.git
+cd agy-mobile
 npm install
 npm run build
 npm link
@@ -53,30 +53,30 @@ npm link
 #### Server Setup (Relay)
 On your public server, generate and apply a secure token:
 ```bash
-bridgey relay gen-token
+agy-mobile relay gen-token
 ```
 
 #### Client Setup (Agent)
 On your local machine, run the interactive setup and paste the token from the step above:
 ```bash
-bridgey agent setup
+agy-mobile agent setup
 ```
 
 ### 3. Start Relay
 
 On your public server:
 ```bash
-bridgey relay start
+agy-mobile relay start
 ```
 
 ### 4. Start Agent
 
 On your local machine:
 ```bash
-bridgey agent start
+agy-mobile agent start
 ```
 This will:
-1. Create or attach to a tmux session named `bridgey`.
+1. Create or attach to a tmux session named `agy-mobile`.
 2. Generate a persistent Agent ID based on your machine and session name.
 3. Automatically kill any previous agent processes taking over the same session.
 4. Stream the session to the Relay for remote access.
@@ -84,7 +84,7 @@ This will:
 ### 5. Interaction Tips
 
 - **Detaching**: To detach from the session locally without closing it, use `Ctrl+B, D`.
-- **Image Upload**: Click the **+** button in the Web UI, paste an image, and click **Upload**. Once you see the success notification, click the blue **Ctrl+V** button to paste the image into tools like Gemini CLI.
+- **Image Upload**: Click the **+** button in the Web UI, paste an image, and click **Upload**. Once you see the success notification, click the blue **Ctrl+V** button to paste the image into tools like Antigravity CLI.
 - **Tmux Navigation**: Use the blue **T-New** and **W0-W5** buttons in the Web UI to quickly manage tmux windows.
 
 ## Development
@@ -94,7 +94,7 @@ This will:
 npm run build
 
 # Run in development mode (using ts-node)
-npm run bridgey relay start
+npm run agy-mobile relay start
 ```
 
 ## License

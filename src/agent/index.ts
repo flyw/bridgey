@@ -25,7 +25,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     ? crypto.createHash('md5').update(`${os.hostname()}-${sessionName}`).digest('hex')
     : crypto.randomUUID();
   
-  const pidFile = path.join(os.tmpdir(), `bridgey-agent-${agentId}.pid`);
+  const pidFile = path.join(os.tmpdir(), `agy-mobile-agent-${agentId}.pid`);
 
   // Takeover logic: if an agent is already running with this ID, kill it
   if (fs.existsSync(pidFile)) {
@@ -81,14 +81,14 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
     env: env as any
   });
 
-  // Enable mouse support if using tmux
+  // Disable mouse support if using tmux to prevent Ctrl+C copy-paste hijacking
   if (command === 'tmux' && sessionName) {
     setTimeout(() => {
       try {
-        // Enable mouse support for the specific session and also globally
-        spawn('tmux', ['set-option', '-t', sessionName, 'mouse', 'on']);
-        spawn('tmux', ['set-option', '-g', 'mouse', 'on']);
-        console.log(`Enabled mouse support for tmux session: ${sessionName}`);
+        // Disable mouse support for the specific session and also globally
+        spawn('tmux', ['set-option', '-t', sessionName, 'mouse', 'off']);
+        spawn('tmux', ['set-option', '-g', 'mouse', 'off']);
+        console.log(`Disabled mouse support for tmux session: ${sessionName}`);
       } catch (e) {}
     }, 2000);
   }
@@ -140,7 +140,7 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
         }
         tmpPath = path.join(clipboardDir, `upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
       } else {
-        tmpPath = path.join('/tmp', `bridgey_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
+        tmpPath = path.join('/tmp', `agy_mobile_upload_${crypto.randomBytes(4).toString('hex')}${ext}`);
       }
 
       fs.writeFileSync(tmpPath, payload.data);
