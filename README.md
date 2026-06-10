@@ -58,13 +58,6 @@ On your public server, generate and apply a secure token:
 agy-mobile relay gen-token
 ```
 
-#### Client Setup (Agent)
-On your local machine, simply run the agent. If it's your first time, it will automatically guide you through the setup:
-```bash
-agy-mobile
-```
-(Or `npm run start` if not linked)
-
 ### 3. Start Relay
 
 On your public server:
@@ -74,11 +67,15 @@ agy-mobile relay start
 
 ### 4. Start Agent
 
-On your local machine, just run:
+On your local machine, simply run:
 ```bash
 agy-mobile
 ```
-This will:
+(Or `npm run start` if not linked)
+
+**First-time run?** The agent will automatically detect missing configuration and guide you through an interactive setup to connect to your Relay.
+
+This process will:
 1. **Auto-Configure**: Prompt for Relay URL and Token if missing.
 2. **Tmux Integration**: Create or attach to a tmux session named `agy-mobile`.
 3. **Session Management**: Automatically handle persistent IDs and take over stale processes.
