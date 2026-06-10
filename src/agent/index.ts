@@ -73,13 +73,25 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
   const initialCols = process.stdout.columns || 80;
   const initialRows = process.stdout.rows || 30;
 
-  const ptyProcess = pty.spawn(command, args, {
-    name: 'xterm-256color',
-    cols: initialCols,
-    rows: initialRows,
-    cwd: process.cwd(),
-    env: env as any
-  });
+  let ptyProcess: pty.IPty;
+  try {
+    ptyProcess = pty.spawn(command, args, {
+      name: 'xterm-256color',
+      cols: initialCols,
+      rows: initialRows,
+      cwd: process.cwd(),
+      env: env as any
+    });
+  } catch (err: any) {
+    console.error(`\n❌ Failed to spawn process: "${command}"`);
+    console.error(`Error details: ${err.message}`);
+    if (command === 'tmux') {
+      console.error('\n💡 Hint: It looks like "tmux" is not installed or not in your PATH.');
+      console.error('   On macOS, try: brew install tmux');
+      console.error('   On Ubuntu/Debian, try: sudo apt install tmux\n');
+    }
+    process.exit(1);
+  }
 
   // Disable mouse support if using tmux to prevent Ctrl+C copy-paste hijacking
   if (command === 'tmux' && sessionName) {
