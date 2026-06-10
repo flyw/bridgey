@@ -100,16 +100,6 @@ chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper
 chmod +x node_modules/node-pty/prebuilds/darwin-x64/spawn-helper
 ```
 
-## Development
-
-```bash
-# Build
-npm run build
-
-# Run in development mode (using ts-node)
-npm run agy-mobile relay start
-```
-
 ## License
 
 MIT
