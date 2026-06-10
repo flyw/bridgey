@@ -1,6 +1,6 @@
 # Agy Mobile 🌉
 
-![Demo](./demo.png)
+<img src="./demo.png" width="512" alt="Demo">
 
 Agy Mobile is a proxy system that converts local interactive CLI tools (like Antigravity CLI) into a mobile-friendly web chat interface.
 
