@@ -103,6 +103,23 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
 
   let ptyProcess: pty.IPty;
   try {
+    // Diagnostic: Check if file exists and is executable
+    try {
+      fs.accessSync(resolvedCommand, fs.constants.X_OK);
+      console.log(`✅ File access check passed: ${resolvedCommand} is executable.`);
+    } catch (e: any) {
+      console.error(`❌ File access check failed: ${resolvedCommand}. Error: ${e.message}`);
+    }
+
+    // Diagnostic: Try native spawn as a test
+    try {
+      const testSpawn = spawn(resolvedCommand, ['-V']);
+      testSpawn.on('error', (e) => console.error(`❌ Native child_process.spawn test failed: ${e.message}`));
+      testSpawn.on('spawn', () => console.log('✅ Native child_process.spawn test passed.'));
+    } catch (e: any) {
+      console.error(`❌ Native child_process.spawn test exception: ${e.message}`);
+    }
+
     ptyProcess = pty.spawn(resolvedCommand, args, {
       name: 'xterm-256color',
       cols: initialCols,
@@ -111,13 +128,21 @@ export const runAgent = (config: Config, command: string, args: string[], sessio
       env: env as any
     });
   } catch (err: any) {
-    console.error(`\n❌ Failed to spawn process: "${resolvedCommand}"`);
+    console.error(`\n❌ Failed to spawn process via node-pty: "${resolvedCommand}"`);
     console.error(`Error details: ${err.message}`);
+    console.error(`Current UID: ${process.getuid?.()}, GID: ${process.getgid?.()}`);
     console.error(`Current PATH: ${process.env.PATH}`);
+    
+    if (err.message.includes('posix_spawnp failed') && os.platform() === 'darwin') {
+      console.error('\n💡 Troubleshooting for macOS:');
+      console.error('   1. Try rebuilding the native module: npm rebuild node-pty');
+      console.error('   2. Ensure you are not running through an incompatible architecture (e.g., x64 node on ARM64 mac).');
+      console.error('   3. Check if your terminal/IDE has permission to "Developer Tools" in System Settings > Privacy & Security.');
+    }
+    
     if (command === 'tmux') {
       console.error('\n💡 Hint: It looks like "tmux" is not installed or not in your PATH.');
       console.error('   On macOS, try: brew install tmux');
-      console.error('   On Ubuntu/Debian, try: sudo apt install tmux\n');
     }
     process.exit(1);
   }
